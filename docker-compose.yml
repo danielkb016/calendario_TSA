@@ -1,6 +1,6 @@
 services:
-  calendario-tsa:
-    container_name: calendario-tsa
+  calendario-app:
+    container_name: calendario-app
     build: .
     restart: always
     volumes:
