@@ -35,7 +35,6 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copy Prisma schema and config
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/package.json ./package.json
 
 # Copy built next app
