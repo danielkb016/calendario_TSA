@@ -19,7 +19,7 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_SERVE_CONFIG=/etc/tailscale/serve.json
     volumes:
-      - ./data/tailscale_state:/var/lib/tailscale
+      - ./tailscale_state:/var/lib/tailscale
       - ./serve.json:/etc/tailscale/serve.json
       - /dev/net/tun:/dev/net/tun
     cap_add:
