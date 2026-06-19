@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getCalendars } from './actions';
 import DashboardClient from '@/components/DashboardClient';
 import styles from './page.module.css';
