@@ -1,0 +1,19 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "calendario-tsa.tailc49774.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://calendario-tsa:3000"
+        }
+      }
+    }
+  },
+  "AllowFunnel": {
+    "calendario-tsa.tailc49774.ts.net:443": true
+  }
+}

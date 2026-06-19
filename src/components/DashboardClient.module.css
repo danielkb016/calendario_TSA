@@ -1,0 +1,46 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--secondary);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px; /* overlap border */
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.tab:hover {
+  color: var(--text-color);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.activeTab {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background-color: var(--light);
+}
+
+.addTab {
+  color: var(--success);
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+}
+
+.addTab:hover {
+  color: #1e7e34;
+}
