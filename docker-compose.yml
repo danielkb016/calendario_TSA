@@ -1,5 +1,5 @@
 services:
-  calendario-app:
+  app:
     container_name: calendario-app
     build: .
     restart: always

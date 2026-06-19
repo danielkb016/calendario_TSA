@@ -8,7 +8,7 @@
     "calendario-tsa.tailc49774.ts.net:443": {
       "Handlers": {
         "/": {
-          "Proxy": "http://calendario-app:3000"
+          "Proxy": "http://app:3000"
         }
       }
     }
