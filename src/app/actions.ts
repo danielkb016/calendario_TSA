@@ -32,6 +32,15 @@ export async function deleteCalendar(id: number) {
   revalidatePath('/');
 }
 
+export async function updateCalendar(id: number, title: string) {
+  const calendar = await prisma.calendar.update({
+    where: { id },
+    data: { title }
+  });
+  revalidatePath('/');
+  return calendar;
+}
+
 // -- Flights --
 
 export async function getFlights(calendarId: number) {

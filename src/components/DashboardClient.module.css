@@ -22,6 +22,8 @@
   margin-bottom: -2px; /* overlap border */
   transition: all 0.2s;
   background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .tab:hover {
@@ -29,10 +31,89 @@
   background-color: rgba(0, 0, 0, 0.02);
 }
 
-.activeTab {
+.tabWrapper {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--secondary);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px; /* overlap border */
+  transition: all 0.2s;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tabWrapper:hover {
+  color: var(--text-color);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.activeTabWrapper {
   color: var(--primary);
-  border-bottom-color: var(--primary);
+  border-bottom: 2px solid var(--primary);
   background-color: var(--light);
+}
+
+.tabContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tabTitle {
+  white-space: nowrap;
+}
+
+.tabActions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.actionBtn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.editForm {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tabInput {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.9rem;
+  outline: none;
+  max-width: 140px;
+}
+
+.tabInput:focus {
+  border-color: var(--primary);
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.85rem;
 }
 
 .addTab {
@@ -44,3 +125,4 @@
 .addTab:hover {
   color: #1e7e34;
 }
+
