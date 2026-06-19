@@ -8,6 +8,7 @@ services:
     environment:
       - DATABASE_URL=file:/app/data/database.sqlite
       - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
 
   tailscale:
     image: tailscale/tailscale:latest
