@@ -6,6 +6,7 @@ import FlightModal from './FlightModal';
 import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
 import ZoneManagerModal from './ZoneManagerModal';
+import TodayStatusBanner from './TodayStatusBanner';
 import styles from './GanttView.module.css';
 
 type Flight = {
@@ -137,9 +138,20 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
     if (refresh) fetchFlights();
   };
 
+  const handleAddClick = () => {
+    if (calendar.zones.length === 0) {
+      alert("Por favor, cree al menos una zona de vuelo antes de añadir una coordinación.");
+      return;
+    }
+    setSelectedZone(calendar.zones[0].id);
+    setSelectedDate(new Date());
+  };
+
 
   return (
     <div className={styles.container}>
+      <TodayStatusBanner flights={flights} zones={calendar.zones} onEditFlight={setEditingFlight} />
+
       <div className={styles.controlBar}>
         <div className={styles.navigation}>
           <button className="btn" style={{ border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem' }} onClick={handlePrev}>&larr; Anterior</button>
@@ -219,7 +231,7 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
         </div>
       </div>
 
-      <FlightTable flights={flights} zones={calendar.zones} onEdit={setEditingFlight} />
+      <FlightTable flights={flights} zones={calendar.zones} onEdit={setEditingFlight} onAdd={handleAddClick} />
 
       {(selectedZone !== null || editingFlight !== null) && (
         <FlightModal 

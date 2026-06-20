@@ -17,7 +17,17 @@ type Zone = {
   name: string;
 };
 
-export default function FlightTable({ flights, zones, onEdit }: { flights: Flight[], zones: Zone[], onEdit: (f: Flight) => void }) {
+export default function FlightTable({ 
+  flights, 
+  zones, 
+  onEdit,
+  onAdd
+}: { 
+  flights: Flight[]; 
+  zones: Zone[]; 
+  onEdit: (f: Flight) => void;
+  onAdd: () => void;
+}) {
   const getCoordinationClass = (status: string) => {
     switch (status.toLowerCase()) {
       case 'confirmado': return 'badge-success';
@@ -29,6 +39,12 @@ export default function FlightTable({ flights, zones, onEdit }: { flights: Fligh
 
   return (
     <div className={`card ${styles.tableCard}`}>
+      <div className={styles.tableHeader}>
+        <h3>Coordinaciones Registradas</h3>
+        <button className="btn btn-primary" onClick={onAdd} style={{ fontSize: '0.9rem', gap: '0.5rem' }}>
+          ➕ Añadir Coordinación
+        </button>
+      </div>
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
@@ -70,7 +86,7 @@ export default function FlightTable({ flights, zones, onEdit }: { flights: Fligh
             })}
             {flights.length === 0 && (
               <tr>
-                <td colSpan={7} className={styles.empty}>No hay vuelos programados. Haz clic en el calendario para añadir uno.</td>
+                <td colSpan={7} className={styles.empty}>No hay coordinaciones programadas. Haz clic en el calendario o en el botón para añadir una.</td>
               </tr>
             )}
           </tbody>

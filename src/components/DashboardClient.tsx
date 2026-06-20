@@ -46,7 +46,7 @@ export default function DashboardClient({ initialCalendars }: { initialCalendars
 
   const handleDelete = async (id: number, title: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm(`¿Estás seguro de que quieres eliminar el calendario "${title}" y todas sus zonas y vuelos asociados?`)) {
+    if (window.confirm(`¿Estás seguro de que quieres eliminar el calendario "${title}" y todas sus zonas y coordinaciones asociadas?`)) {
       try {
         await deleteCalendar(id);
         const remaining = initialCalendars.filter(c => c.id !== id);
@@ -147,7 +147,7 @@ export default function DashboardClient({ initialCalendars }: { initialCalendars
         <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <h2>No hay calendarios</h2>
           <p style={{ color: 'var(--secondary)', marginTop: '1rem' }}>
-            Crea un nuevo calendario para comenzar a coordinar vuelos.
+            Crea un nuevo calendario para comenzar a registrar coordinaciones.
           </p>
           <button className="btn btn-primary" style={{ marginTop: '2rem' }} onClick={() => setIsCreating(true)}>
             Crear Calendario

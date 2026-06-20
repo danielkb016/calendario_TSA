@@ -93,13 +93,13 @@ export default function FlightModal({
       onClose(true);
     } catch (error) {
       console.error(error);
-      alert('Error guardando el vuelo');
+      alert('Error guardando la coordinación');
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (editingFlight && confirm('¿Estás seguro de que deseas eliminar este vuelo?')) {
+    if (editingFlight && confirm('¿Estás seguro de que deseas eliminar esta coordinación?')) {
       setLoading(true);
       await deleteFlight(editingFlight.id);
       onClose(true);
@@ -109,7 +109,7 @@ export default function FlightModal({
   return (
     <div className={styles.overlay}>
       <div className={`card ${styles.modal}`}>
-        <h2>{editingFlight ? 'Editar Vuelo' : 'Nuevo Vuelo'}</h2>
+        <h2>{editingFlight ? 'Editar Coordinación' : 'Nueva Coordinación'}</h2>
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>

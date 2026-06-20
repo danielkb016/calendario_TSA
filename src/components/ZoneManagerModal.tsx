@@ -62,7 +62,7 @@ export default function ZoneManagerModal({
   };
 
   const handleDeleteZone = async (id: number, name: string) => {
-    if (confirm(`¿Estás seguro de que deseas eliminar la zona "${name}"? Se borrarán todos los vuelos asociados a ella.`)) {
+    if (confirm(`¿Estás seguro de que deseas eliminar la zona "${name}"? Se borrarán todas las coordinaciones asociadas a ella.`)) {
       setLoading(true);
       try {
         await deleteZone(id);
