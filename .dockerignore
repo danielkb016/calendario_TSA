@@ -1,0 +1,31 @@
+# Dependencies and builds
+node_modules
+.next
+out
+build
+
+# Version control
+.git
+.gitignore
+
+# Local databases and runtime state
+data
+tailscale_state
+tailscale_state/
+
+# Local env files
+.env
+.env*.local
+
+# Docker / project config not needed in build
+Dockerfile
+docker-compose.yml
+README.md
+AGENTS.md
+CLAUDE.md
+serve.json
+eslint.config.mjs
+tsconfig.json
+package-lock.json
+next-env.d.ts
+next.config.ts
