@@ -24,8 +24,3 @@ README.md
 AGENTS.md
 CLAUDE.md
 serve.json
-eslint.config.mjs
-tsconfig.json
-package-lock.json
-next-env.d.ts
-next.config.ts
