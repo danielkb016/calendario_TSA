@@ -36,3 +36,11 @@
   color: var(--text-color);
   margin-top: 0.25rem;
 }
+
+@media (max-width: 480px) {
+  .warningBox {
+    min-width: unset;
+    width: 100%;
+  }
+}
+

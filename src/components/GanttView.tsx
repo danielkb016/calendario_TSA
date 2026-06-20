@@ -171,7 +171,7 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
       <CollisionWarnings flights={flights} zones={calendar.zones} />
 
       <div className={`card ${styles.ganttCard}`}>
-        <div className={styles.ganttGrid} style={{ gridTemplateColumns: `200px repeat(${days.length}, minmax(100px, 1fr))` }}>
+        <div className={styles.ganttGrid} style={{ gridTemplateColumns: `var(--zone-column-width, 200px) repeat(${days.length}, minmax(100px, 1fr))` }}>
           {/* Header Row */}
           <div className={`${styles.headerCell} ${styles.zoneHeader}`}>ZONAS DE VUELO</div>
           {days.map((day, i) => (

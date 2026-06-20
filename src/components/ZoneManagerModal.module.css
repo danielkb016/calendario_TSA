@@ -166,3 +166,35 @@
 .addInputGroup .input {
   flex: 1;
 }
+
+@media (max-width: 480px) {
+  .modal {
+    padding: 1rem;
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+  .viewRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .viewRow .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .editRow {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .editRow button {
+    width: 100%;
+  }
+  .addInputGroup {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .addInputGroup button {
+    width: 100%;
+  }
+}
+

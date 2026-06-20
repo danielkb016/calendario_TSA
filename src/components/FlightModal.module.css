@@ -86,3 +86,26 @@
   background-color: var(--danger);
   color: white;
 }
+
+@media (max-width: 480px) {
+  .modal {
+    padding: 1.25rem;
+    max-height: 95vh;
+    margin: 0.5rem;
+  }
+  .row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .actions button {
+    width: 100%;
+  }
+  .btnDelete {
+    order: 3;
+  }
+}
+

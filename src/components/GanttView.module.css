@@ -211,4 +211,69 @@
   box-shadow: var(--shadow-sm);
 }
 
+@media (max-width: 768px) {
+  .controlBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .navigation {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    gap: 0.35rem;
+  }
+  .navigation button {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.85rem;
+  }
+  .dateLabel {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .viewToggle {
+    justify-content: center;
+  }
+  .toggleBtn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  .zoneCell {
+    padding: 1rem 0.5rem;
+  }
+  .zoneIcon {
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+  .zoneName {
+    font-size: 0.75rem;
+    word-break: break-word;
+  }
+  .zoneHeader {
+    font-size: 0.75rem;
+    padding: 0.75rem 0.25rem;
+  }
+  .dayCell {
+    min-height: 90px;
+    padding: 0.25rem;
+  }
+  .flightBlock {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.7rem;
+    border-radius: 6px;
+  }
+  .flightBlock span {
+    font-size: 0.65rem;
+  }
+  .anuladaStamp {
+    font-size: 0.85rem;
+  }
+}
+
+
 

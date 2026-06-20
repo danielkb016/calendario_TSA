@@ -63,3 +63,16 @@
   padding: 2rem !important;
   color: var(--secondary);
 }
+
+@media (max-width: 768px) {
+  .table th, .table td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  .idCol {
+    height: 24px;
+    width: 24px;
+    font-size: 0.75rem;
+  }
+}
+
