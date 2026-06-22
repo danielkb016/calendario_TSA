@@ -45,18 +45,25 @@ export default function FlightModal({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const getLocalYMD = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     if (editingFlight) {
       setOperator(editingFlight.operator);
       setZoneId(editingFlight.zoneId);
-      setStartDate(editingFlight.startDate.toISOString().split('T')[0]);
+      setStartDate(getLocalYMD(editingFlight.startDate));
       setStartTime(editingFlight.startDate.toTimeString().slice(0, 5));
-      setEndDate(editingFlight.endDate.toISOString().split('T')[0]);
+      setEndDate(getLocalYMD(editingFlight.endDate));
       setEndTime(editingFlight.endDate.toTimeString().slice(0, 5));
       setCoordination(editingFlight.coordination);
       setSituation(editingFlight.situation || '');
     } else if (initialDate && initialZoneId) {
       setZoneId(initialZoneId);
-      const dateStr = initialDate.toISOString().split('T')[0];
+      const dateStr = getLocalYMD(initialDate);
       setStartDate(dateStr);
       setEndDate(dateStr);
     }
