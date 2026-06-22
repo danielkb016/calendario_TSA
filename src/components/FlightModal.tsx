@@ -153,6 +153,7 @@ export default function FlightModal({
                 <option value="Confirmado">Confirmado</option>
                 <option value="Pendiente">Pendiente</option>
                 <option value="Anulada">Anulada</option>
+                <option value="Finalizada">Finalizada</option>
                 <option value="No Confirmado">No Confirmado</option>
               </select>
             </div>

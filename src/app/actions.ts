@@ -44,6 +44,27 @@ export async function updateCalendar(id: number, title: string) {
 // -- Flights --
 
 export async function getFlights(calendarId: number) {
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+
+  // Auto-finalize coordinations that ended BEFORE today (i.e., endDate < startOfToday)
+  try {
+    await prisma.flight.updateMany({
+      where: {
+        calendarId,
+        endDate: { lt: startOfToday },
+        coordination: {
+          notIn: ['Anulada', 'Finalizada']
+        }
+      },
+      data: {
+        coordination: 'Finalizada'
+      }
+    });
+  } catch (error) {
+    console.error('Failed to auto-finalize past flights:', error);
+  }
+
   return await prisma.flight.findMany({
     where: { calendarId },
     include: { zone: true },

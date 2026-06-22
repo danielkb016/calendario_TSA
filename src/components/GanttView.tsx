@@ -147,6 +147,9 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
     setSelectedDate(new Date());
   };
 
+  const activeFlights = flights.filter(f => !['Anulada', 'Finalizada'].includes(f.coordination));
+  const historicalFlights = flights.filter(f => ['Anulada', 'Finalizada'].includes(f.coordination))
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 
   return (
     <div className={styles.container}>
@@ -231,8 +234,21 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
         </div>
       </div>
 
-      <FlightTable flights={flights} zones={calendar.zones} onEdit={setEditingFlight} onAdd={handleAddClick} />
+      <FlightTable 
+        flights={activeFlights} 
+        zones={calendar.zones} 
+        onEdit={setEditingFlight} 
+        onAdd={handleAddClick} 
+        title="Coordinaciones Activas"
+      />
 
+      <FlightTable 
+        flights={historicalFlights} 
+        zones={calendar.zones} 
+        onEdit={setEditingFlight} 
+        title="Historial y Anuladas"
+        emptyMessage="No hay coordinaciones en el historial."
+      />
       {(selectedZone !== null || editingFlight !== null) && (
         <FlightModal 
           calendarId={calendar.id}

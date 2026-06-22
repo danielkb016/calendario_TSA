@@ -21,12 +21,16 @@ export default function FlightTable({
   flights, 
   zones, 
   onEdit,
-  onAdd
+  onAdd,
+  title,
+  emptyMessage
 }: { 
   flights: Flight[]; 
   zones: Zone[]; 
   onEdit: (f: Flight) => void;
-  onAdd: () => void;
+  onAdd?: () => void;
+  title: string;
+  emptyMessage?: string;
 }) {
   const getCoordinationClass = (status: string) => {
     switch (status.toLowerCase()) {
@@ -40,10 +44,12 @@ export default function FlightTable({
   return (
     <div className={`card ${styles.tableCard}`}>
       <div className={styles.tableHeader}>
-        <h3>Coordinaciones Registradas</h3>
-        <button className="btn btn-primary" onClick={onAdd} style={{ fontSize: '0.9rem', gap: '0.5rem' }}>
-          ➕ Añadir Coordinación
-        </button>
+        <h3>{title}</h3>
+        {onAdd && (
+          <button className="btn btn-primary" onClick={onAdd} style={{ fontSize: '0.9rem', gap: '0.5rem' }}>
+            ➕ Añadir Coordinación
+          </button>
+        )}
       </div>
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
@@ -86,7 +92,9 @@ export default function FlightTable({
             })}
             {flights.length === 0 && (
               <tr>
-                <td colSpan={7} className={styles.empty}>No hay coordinaciones programadas. Haz clic en el calendario o en el botón para añadir una.</td>
+                <td colSpan={7} className={styles.empty}>
+                  {emptyMessage || "No hay coordinaciones programadas."}
+                </td>
               </tr>
             )}
           </tbody>
