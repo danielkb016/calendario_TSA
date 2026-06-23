@@ -275,5 +275,16 @@
   }
 }
 
+/* Today highlight styles */
+.todayHeader {
+  background-color: #fef08a !important; /* Soft yellow to draw attention */
+  color: #854d0e !important;
+  font-weight: bold;
+  border-bottom: 2px solid #eab308;
+}
 
-
+.todayColumn {
+  background-color: rgba(254, 240, 138, 0.15) !important; /* Very soft yellow for the whole column */
+  border-left: 1px solid rgba(234, 179, 8, 0.3) !important;
+  border-right: 1px solid rgba(234, 179, 8, 0.3) !important;
+}

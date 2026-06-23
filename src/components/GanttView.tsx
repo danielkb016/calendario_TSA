@@ -189,11 +189,14 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
         <div className={styles.ganttGrid} style={{ gridTemplateColumns: `var(--zone-column-width, 200px) repeat(${days.length}, minmax(100px, 1fr))` }}>
           {/* Header Row */}
           <div className={`${styles.headerCell} ${styles.zoneHeader}`}>ZONAS DE VUELO</div>
-          {days.map((day, i) => (
-            <div key={i} className={styles.headerCell}>
-              {day.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-            </div>
-          ))}
+          {days.map((day, i) => {
+            const isToday = day.toDateString() === new Date().toDateString();
+            return (
+              <div key={i} className={`${styles.headerCell} ${isToday ? styles.todayHeader : ''}`}>
+                {day.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </div>
+            );
+          })}
 
           {/* Zones and Grid */}
           {calendar.zones.map(zone => (
@@ -204,6 +207,8 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
               </div>
               
               {days.map((day, i) => {
+                const isToday = day.toDateString() === new Date().toDateString();
+                
                 // Find flights for this zone and day
                 const dayFlights = flights.filter(f => 
                   f.zoneId === zone.id && 
@@ -212,7 +217,7 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
                 );
 
                 return (
-                  <div key={i} className={styles.dayCell} onClick={() => handleCellClick(zone.id, day)}>
+                  <div key={i} className={`${styles.dayCell} ${isToday ? styles.todayColumn : ''}`} onClick={() => handleCellClick(zone.id, day)}>
                     {dayFlights.map(flight => (
                       <div 
                         key={flight.id} 
