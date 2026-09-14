@@ -79,11 +79,16 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                           className={styles.opBubbles}
                           onClick={(e) => { e.stopPropagation(); setQuickActionStatus(status); }}
                           title="Haz clic para gestionar la Apertura/Cierre operativo y notas"
-                          style={{ margin: 0 }}
+                          style={{ margin: 0, gap: '1rem', padding: '0.35rem 0.75rem' }}
                         >
-                          <div className={`${styles.bubble} ${status.opened ? styles.bubbleGreen : styles.bubbleRed}`} title={status.opened ? `Abierto por ${status.openedBy}` : 'Pendiente apertura'}></div>
-                          <div className={`${styles.bubble} ${status.closed ? styles.bubbleGreen : status.opened ? styles.bubbleOrange : styles.bubbleRed}`} title={status.closed ? `Cerrado por ${status.closedBy}` : 'Pendiente cierre'}></div>
-                          <span className={styles.bubbleText}>Operativa</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Apertura</span>
+                            <div className={`${styles.bubble} ${status.opened ? styles.bubbleGreen : styles.bubbleRed}`} title={status.opened ? `Abierto por ${status.openedBy}` : 'Pendiente apertura'}></div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Cierre</span>
+                            <div className={`${styles.bubble} ${status.closed ? styles.bubbleGreen : status.opened ? styles.bubbleOrange : styles.bubbleRed}`} title={status.closed ? `Cerrado por ${status.closedBy}` : 'Pendiente cierre'}></div>
+                          </div>
                         </div>
                       </div>
 

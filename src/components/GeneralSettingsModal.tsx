@@ -118,14 +118,6 @@ export default function GeneralSettingsModal({
               <p className={styles.helpText}>Si se marca, el calendario aparecerá en el Banner Global para la coordinación diaria.</p>
             </div>
             
-            <button
-              onClick={handleSaveSettings}
-              disabled={loading}
-              className={`${styles.btn} ${styles.btnSave}`}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              Guardar Permiso
-            </button>
           </div>
 
           {requiresDaily && (
@@ -172,6 +164,16 @@ export default function GeneralSettingsModal({
               )}
             </div>
           )}
+
+          <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-start' }}>
+            <button
+              onClick={handleSaveSettings}
+              disabled={loading}
+              className={`${styles.btn} ${styles.btnSave}`}
+            >
+              Guardar Permiso
+            </button>
+          </div>
 
         </div>
       </div>
