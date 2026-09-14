@@ -7,7 +7,6 @@ import styles from './ZoneManagerModal.module.css';
 type Zone = {
   id: number;
   name: string;
-  requiresDailyCoordination: boolean;
 };
 
 type Calendar = {
@@ -28,7 +27,6 @@ export default function ZoneManagerModal({
   const [newZoneName, setNewZoneName] = useState('');
   const [editingZoneId, setEditingZoneId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [editingRequiresDaily, setEditingRequiresDaily] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleAddZone = async (e: React.FormEvent) => {
@@ -53,8 +51,7 @@ export default function ZoneManagerModal({
     setLoading(true);
     try {
       await updateZone(id, { 
-        name: editingName.trim(), 
-        requiresDailyCoordination: editingRequiresDaily
+        name: editingName.trim()
       });
       setEditingZoneId(null);
       onZonesChanged();
@@ -109,16 +106,6 @@ export default function ZoneManagerModal({
                           autoFocus
                         />
                       </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.checkboxLabel}>
-                          <input 
-                            type="checkbox" 
-                            checked={editingRequiresDaily} 
-                            onChange={e => setEditingRequiresDaily(e.target.checked)} 
-                          />
-                          Requiere coordinación operativa diaria (Apertura/Cierre)
-                        </label>
-                      </div>
                       <div className={styles.editActions}>
                         <button
                           onClick={() => handleSaveEdit(zone.id)}
@@ -144,13 +131,12 @@ export default function ZoneManagerModal({
                           onClick={() => {
                             setEditingZoneId(zone.id);
                             setEditingName(zone.name);
-                            setEditingRequiresDaily(zone.requiresDailyCoordination);
                           }}
                           disabled={loading}
                           className={`${styles.btn} ${styles.btnEdit}`}
-                          title="Ajustes de zona"
+                          title="Editar nombre"
                         >
-                          ⚙️ Ajustes
+                          ✏️ Renombrar
                         </button>
                         <button
                           onClick={() => handleDeleteZone(zone.id, zone.name)}

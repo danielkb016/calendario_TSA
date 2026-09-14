@@ -35,15 +35,14 @@ type Calendar = {
   id: number;
   title: string;
   periodicPermitExpiration: Date | null;
-  operators: Operator[];
+  requiresDailyCoordination: boolean;
   zones: { 
     id: number; 
     name: string;
-    requiresDailyCoordination: boolean;
   }[];
 };
 
-export default function GanttView({ calendar }: { calendar: Calendar }) {
+export default function GanttView({ calendar, operators }: { calendar: Calendar, operators: Operator[] }) {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
@@ -198,7 +197,17 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
         </div>
       )}
 
-      <TodayStatusBanner flights={flights} zones={calendar.zones} operators={calendar.operators} onEditFlight={setEditingFlight} onDataUpdated={fetchFlights} />
+      {calendar.requiresDailyCoordination && (
+        <div className={styles.todayBannerContainer}>
+          <TodayStatusBanner 
+            flights={flights} 
+            zones={calendar.zones} 
+            operators={operators}
+            onEditFlight={setEditingFlight}
+            onDataUpdated={fetchFlights}
+          />
+        </div>
+      )}
 
       <div className={styles.controlBar}>
         <div className={styles.navigation}>
@@ -329,6 +338,7 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
       {isManagingSettings && (
         <GeneralSettingsModal 
           calendar={calendar} 
+          operators={operators}
           onClose={() => setIsManagingSettings(false)} 
           onUpdated={() => {
             window.location.reload(); // Hard refresh to update parent props since calendar is passed as a prop from server

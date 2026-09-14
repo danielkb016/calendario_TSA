@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import CalendarCreator from './CalendarCreator';
 import GanttView from './GanttView';
+import GeneralSettingsModal from './GeneralSettingsModal';
 import styles from './DashboardClient.module.css';
 import { updateCalendar, deleteCalendar } from '@/app/actions';
 
@@ -15,15 +16,14 @@ type Calendar = {
   id: number;
   title: string;
   periodicPermitExpiration: Date | null;
-  operators: Operator[];
+  requiresDailyCoordination: boolean;
   zones: { 
     id: number; 
     name: string;
-    requiresDailyCoordination: boolean;
   }[];
 };
 
-export default function DashboardClient({ initialCalendars }: { initialCalendars: Calendar[] }) {
+export default function DashboardClient({ initialCalendars, globalOperators }: { initialCalendars: Calendar[], globalOperators: Operator[] }) {
   const [activeCalendarId, setActiveCalendarId] = useState<number | null>(
     initialCalendars.length > 0 ? initialCalendars[0].id : null
   );
@@ -31,6 +31,7 @@ export default function DashboardClient({ initialCalendars }: { initialCalendars
   const [editingCalendarId, setEditingCalendarId] = useState<number | null>(null);
   const [editTitleVal, setEditTitleVal] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const activeCalendar = initialCalendars.find(c => c.id === activeCalendarId);
 
@@ -145,7 +146,24 @@ export default function DashboardClient({ initialCalendars }: { initialCalendars
         >
           + Nuevo Calendario
         </button>
+        <button 
+          className={styles.headerBtn}
+          onClick={() => setIsSettingsOpen(true)}
+        >
+          ⚙️ Ajustes Generales
+        </button>
       </div>
+
+      {isSettingsOpen && activeCalendar && (
+        <GeneralSettingsModal 
+          calendar={activeCalendar} 
+          operators={globalOperators}
+          onClose={() => setIsSettingsOpen(false)} 
+          onUpdated={() => {
+            window.location.reload();
+          }} 
+        />
+      )}
 
       {isCreating ? (
         <CalendarCreator onCreated={(id) => {
@@ -153,7 +171,7 @@ export default function DashboardClient({ initialCalendars }: { initialCalendars
           setActiveCalendarId(id);
         }} onCancel={() => setIsCreating(false)} />
       ) : activeCalendar ? (
-        <GanttView calendar={activeCalendar} />
+        <GanttView calendar={activeCalendar} operators={globalOperators} />
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <h2>No hay calendarios</h2>

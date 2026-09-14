@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic';
 
-import { getCalendars } from './actions';
+import { getCalendars, getOperators } from './actions';
 import DashboardClient from '@/components/DashboardClient';
 import styles from './page.module.css';
 
 export default async function Home() {
   const calendars = await getCalendars();
+  const operators = await getOperators();
 
   return (
     <main className={styles.main}>
@@ -19,7 +20,7 @@ export default async function Home() {
         </div>
       </header>
 
-      <DashboardClient initialCalendars={calendars} />
+      <DashboardClient initialCalendars={calendars} globalOperators={operators} />
     </main>
   );
 }

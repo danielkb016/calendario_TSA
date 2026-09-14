@@ -21,7 +21,6 @@ type Flight = {
 type Zone = {
   id: number;
   name: string;
-  requiresDailyCoordination: boolean;
 };
 
 export default function FlightTable({ 

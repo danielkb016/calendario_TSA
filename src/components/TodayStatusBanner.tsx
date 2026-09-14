@@ -23,7 +23,6 @@ type Flight = {
 type Zone = {
   id: number;
   name: string;
-  requiresDailyCoordination: boolean;
 };
 
 type Operator = {
@@ -105,17 +104,15 @@ export default function TodayStatusBanner({ flights, zones, operators, onEditFli
                   </span>
                 </div>
                 <div className={styles.cardBody}>
-                  {zone?.requiresDailyCoordination && (
-                    <div 
-                      className={styles.opBubbles}
-                      onClick={(e) => { e.stopPropagation(); setQuickActionFlight(flight); }}
-                      title="Haz clic para gestionar la Apertura/Cierre operativo"
-                    >
-                      <div className={`${styles.bubble} ${flight.dailyOpOpened ? styles.bubbleGreen : styles.bubbleRed}`} title={flight.dailyOpOpened ? `Abierto por ${flight.dailyOpOpenedBy}` : 'Pendiente apertura'}></div>
-                      <div className={`${styles.bubble} ${flight.dailyOpClosed ? styles.bubbleGreen : flight.dailyOpOpened ? styles.bubbleOrange : styles.bubbleRed}`} title={flight.dailyOpClosed ? `Cerrado por ${flight.dailyOpClosedBy}` : 'Pendiente cierre'}></div>
-                      <span className={styles.bubbleText}>Operativa</span>
-                    </div>
-                  )}
+                  <div 
+                    className={styles.opBubbles}
+                    onClick={(e) => { e.stopPropagation(); setQuickActionFlight(flight); }}
+                    title="Haz clic para gestionar la Apertura/Cierre operativo"
+                  >
+                    <div className={`${styles.bubble} ${flight.dailyOpOpened ? styles.bubbleGreen : styles.bubbleRed}`} title={flight.dailyOpOpened ? `Abierto por ${flight.dailyOpOpenedBy}` : 'Pendiente apertura'}></div>
+                    <div className={`${styles.bubble} ${flight.dailyOpClosed ? styles.bubbleGreen : flight.dailyOpOpened ? styles.bubbleOrange : styles.bubbleRed}`} title={flight.dailyOpClosed ? `Cerrado por ${flight.dailyOpClosedBy}` : 'Pendiente cierre'}></div>
+                    <span className={styles.bubbleText}>Operativa</span>
+                  </div>
                   <div className={styles.timeInfo} onClick={() => onEditFlight(flight)} style={{ cursor: 'pointer' }}>
                     <strong>Horario:</strong> {getFormattedTime(flight.startDate)} a {getFormattedTime(flight.endDate)}
                     {isMultiDay && (

@@ -16,23 +16,20 @@ model Calendar {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   periodicPermitExpiration  DateTime?
+  requiresDailyCoordination Boolean @default(false)
   zones     Zone[]
   flights   Flight[]
-  operators Operator[]
 }
 
 model Operator {
   id         Int      @id @default(autoincrement())
   name       String
-  calendarId Int
-  calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
 }
 
 model Zone {
   id         Int      @id @default(autoincrement())
   name       String
   calendarId Int
-  requiresDailyCoordination Boolean @default(false)
   calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   flights    Flight[]
 }

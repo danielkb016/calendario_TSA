@@ -13,15 +13,17 @@ type Calendar = {
   id: number;
   title: string;
   periodicPermitExpiration: Date | null;
-  operators: Operator[];
+  requiresDailyCoordination: boolean;
 };
 
 export default function GeneralSettingsModal({
   calendar,
+  operators,
   onClose,
   onUpdated
 }: {
   calendar: Calendar;
+  operators: Operator[];
   onClose: () => void;
   onUpdated: () => void;
 }) {
@@ -33,6 +35,7 @@ export default function GeneralSettingsModal({
       ? new Date(calendar.periodicPermitExpiration).toISOString().split('T')[0] 
       : ''
   );
+  const [requiresDaily, setRequiresDaily] = useState(calendar.requiresDailyCoordination);
 
   // Operators settings
   const [newOperatorName, setNewOperatorName] = useState('');
@@ -41,7 +44,10 @@ export default function GeneralSettingsModal({
     setLoading(true);
     try {
       const expDate = periodicExp ? new Date(periodicExp) : null;
-      await updateCalendar(calendar.id, { periodicPermitExpiration: expDate });
+      await updateCalendar(calendar.id, { 
+        periodicPermitExpiration: expDate,
+        requiresDailyCoordination: requiresDaily
+      });
       onUpdated();
       onClose();
     } catch (error) {
@@ -57,7 +63,7 @@ export default function GeneralSettingsModal({
     if (!newOperatorName.trim()) return;
     setLoading(true);
     try {
-      await addOperator(calendar.id, newOperatorName.trim());
+      await addOperator(newOperatorName.trim());
       setNewOperatorName('');
       onUpdated();
     } catch (error) {
@@ -105,6 +111,18 @@ export default function GeneralSettingsModal({
               <p className={styles.helpText}>Se mostrará un aviso en el calendario si quedan menos de 30 días.</p>
             </div>
             
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxLabel} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '1rem' }}>
+                <input 
+                  type="checkbox" 
+                  checked={requiresDaily} 
+                  onChange={e => setRequiresDaily(e.target.checked)} 
+                />
+                Requiere coordinación operativa diaria (Apertura/Cierre) en este calendario
+              </label>
+              <p className={styles.helpText}>Si se marca, se habilitará la firma rápida (🟢/🔴) en todos los vuelos del calendario del día de hoy.</p>
+            </div>
+            
             <button
               onClick={handleSaveSettings}
               disabled={loading}
@@ -139,10 +157,10 @@ export default function GeneralSettingsModal({
             </form>
 
             <div className={styles.operatorList}>
-              {calendar.operators.length === 0 ? (
+              {operators.length === 0 ? (
                 <div className={styles.empty}>No hay pilotos registrados.</div>
               ) : (
-                calendar.operators.map(op => (
+                operators.map(op => (
                   <div key={op.id} className={styles.operatorItem}>
                     <span className={styles.operatorName}>👤 {op.name}</span>
                     <button
