@@ -93,6 +93,12 @@ export async function updateFlight(id: number, data: Partial<{
   coordination: string;
   situation: string;
   zoneId: number;
+  dailyOpOpened: boolean;
+  dailyOpOpenedBy: string | null;
+  dailyOpOpenedAt: Date | null;
+  dailyOpClosed: boolean;
+  dailyOpClosedBy: string | null;
+  dailyOpClosedAt: Date | null;
 }>) {
   const flight = await prisma.flight.update({ where: { id }, data });
   revalidatePath('/');
@@ -117,10 +123,10 @@ export async function addZone(calendarId: number, name: string) {
   return zone;
 }
 
-export async function updateZone(id: number, name: string) {
+export async function updateZone(id: number, data: { name?: string; requiresDailyCoordination?: boolean; periodicPermitExpiration?: Date | null }) {
   const zone = await prisma.zone.update({
     where: { id },
-    data: { name }
+    data
   });
   revalidatePath('/');
   return zone;

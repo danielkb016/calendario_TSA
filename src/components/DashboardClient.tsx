@@ -9,7 +9,12 @@ import { updateCalendar, deleteCalendar } from '@/app/actions';
 type Calendar = {
   id: number;
   title: string;
-  zones: { id: number; name: string }[];
+  zones: { 
+    id: number; 
+    name: string;
+    requiresDailyCoordination: boolean;
+    periodicPermitExpiration: Date | null;
+  }[];
 };
 
 export default function DashboardClient({ initialCalendars }: { initialCalendars: Calendar[] }) {

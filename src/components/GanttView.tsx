@@ -16,13 +16,24 @@ type Flight = {
   endDate: Date;
   coordination: string;
   situation: string | null;
+  dailyOpOpened: boolean;
+  dailyOpOpenedBy: string | null;
+  dailyOpOpenedAt: Date | null;
+  dailyOpClosed: boolean;
+  dailyOpClosedBy: string | null;
+  dailyOpClosedAt: Date | null;
   zoneId: number;
 };
 
 type Calendar = {
   id: number;
   title: string;
-  zones: { id: number; name: string }[];
+  zones: { 
+    id: number; 
+    name: string;
+    requiresDailyCoordination: boolean;
+    periodicPermitExpiration: Date | null;
+  }[];
 };
 
 export default function GanttView({ calendar }: { calendar: Calendar }) {
@@ -199,11 +210,38 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
           })}
 
           {/* Zones and Grid */}
-          {calendar.zones.map(zone => (
+          {calendar.zones.map(zone => {
+            const today = new Date();
+            let isExpiringSoon = false;
+            let isExpired = false;
+            
+            if (zone.periodicPermitExpiration) {
+              const expDate = new Date(zone.periodicPermitExpiration);
+              const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              if (daysLeft < 0) {
+                isExpired = true;
+              } else if (daysLeft <= 30) {
+                isExpiringSoon = true;
+              }
+            }
+
+            return (
             <React.Fragment key={zone.id}>
               <div className={styles.zoneCell}>
                 <div className={styles.zoneIcon}>🏔️</div>
-                <div className={styles.zoneName}>{zone.name}</div>
+                <div className={styles.zoneName}>
+                  {zone.name}
+                  {isExpired && (
+                    <div className={styles.expirationWarning} style={{ color: '#dc3545', fontSize: '0.75rem', marginTop: '4px' }}>
+                      ❌ Permiso caducado
+                    </div>
+                  )}
+                  {isExpiringSoon && !isExpired && (
+                    <div className={styles.expirationWarning} style={{ color: '#f59e0b', fontSize: '0.75rem', marginTop: '4px' }}>
+                      ⚠️ Caduca pronto ({new Date(zone.periodicPermitExpiration!).toLocaleDateString()})
+                    </div>
+                  )}
+                </div>
               </div>
               
               {days.map((day, i) => {
@@ -235,7 +273,7 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
                 );
               })}
             </React.Fragment>
-          ))}
+          )})}
         </div>
       </div>
 

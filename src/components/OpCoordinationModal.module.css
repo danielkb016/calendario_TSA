@@ -1,0 +1,137 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  width: 90%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--secondary);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.statusSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--light);
+  border-radius: var(--radius);
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.statusLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--secondary);
+}
+
+.statusDone {
+  font-size: 0.9rem;
+  color: #137333;
+}
+
+.statusPending {
+  font-size: 0.9rem;
+  color: #dc3545;
+}
+
+.actionForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.actionForm label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.select, .input {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.buttons {
+  display: flex;
+  margin-top: 0.5rem;
+}
+
+.btn {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: white;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnOpen {
+  background-color: #f59e0b;
+}
+
+.btnOpen:hover:not(:disabled) {
+  background-color: #d97706;
+}
+
+.btnCloseAction {
+  background-color: #10b981;
+}
+
+.btnCloseAction:hover:not(:disabled) {
+  background-color: #059669;
+}

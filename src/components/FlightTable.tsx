@@ -9,12 +9,20 @@ type Flight = {
   endDate: Date;
   coordination: string;
   situation: string | null;
+  dailyOpOpened: boolean;
+  dailyOpOpenedBy: string | null;
+  dailyOpOpenedAt: Date | null;
+  dailyOpClosed: boolean;
+  dailyOpClosedBy: string | null;
+  dailyOpClosedAt: Date | null;
   zoneId: number;
 };
 
 type Zone = {
   id: number;
   name: string;
+  requiresDailyCoordination: boolean;
+  periodicPermitExpiration: Date | null;
 };
 
 export default function FlightTable({ 

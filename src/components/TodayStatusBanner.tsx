@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import OpCoordinationModal from './OpCoordinationModal';
 import styles from './TodayStatusBanner.module.css';
 
 type Flight = {
@@ -10,12 +11,19 @@ type Flight = {
   endDate: Date;
   coordination: string;
   situation: string | null;
+  dailyOpOpened: boolean;
+  dailyOpOpenedBy: string | null;
+  dailyOpOpenedAt: Date | null;
+  dailyOpClosed: boolean;
+  dailyOpClosedBy: string | null;
+  dailyOpClosedAt: Date | null;
   zoneId: number;
 };
 
 type Zone = {
   id: number;
   name: string;
+  requiresDailyCoordination: boolean;
 };
 
 interface TodayStatusBannerProps {
@@ -24,7 +32,9 @@ interface TodayStatusBannerProps {
   onEditFlight: (flight: Flight) => void;
 }
 
-export default function TodayStatusBanner({ flights, zones, onEditFlight }: TodayStatusBannerProps) {
+export default function TodayStatusBanner({ flights, zones, onEditFlight, onDataUpdated }: TodayStatusBannerProps & { onDataUpdated?: () => void }) {
+  const [quickActionFlight, setQuickActionFlight] = useState<Flight | null>(null);
+
   // Get start and end of today in local time
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
@@ -75,17 +85,31 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight }: Toda
               <div 
                 key={flight.id} 
                 className={styles.card}
-                onClick={() => onEditFlight(flight)}
-                title="Haga clic para editar la coordinación"
               >
-                <div className={styles.cardHeader}>
+                <div 
+                  className={styles.cardHeader}
+                  onClick={() => onEditFlight(flight)}
+                  title="Haga clic para editar la coordinación general"
+                  style={{ cursor: 'pointer' }}
+                >
                   <span className={styles.zoneBadge}>🏔️ {zone?.name || 'Zona desconocida'}</span>
                   <span className={`${styles.statusBadge} ${styles[flight.coordination.toLowerCase()] || ''}`}>
                     {flight.coordination}
                   </span>
                 </div>
                 <div className={styles.cardBody}>
-                  <div className={styles.timeInfo}>
+                  {zone?.requiresDailyCoordination && (
+                    <div 
+                      className={styles.opBubbles}
+                      onClick={(e) => { e.stopPropagation(); setQuickActionFlight(flight); }}
+                      title="Haz clic para gestionar la Apertura/Cierre operativo"
+                    >
+                      <div className={`${styles.bubble} ${flight.dailyOpOpened ? styles.bubbleGreen : styles.bubbleRed}`} title={flight.dailyOpOpened ? `Abierto por ${flight.dailyOpOpenedBy}` : 'Pendiente apertura'}></div>
+                      <div className={`${styles.bubble} ${flight.dailyOpClosed ? styles.bubbleGreen : flight.dailyOpOpened ? styles.bubbleOrange : styles.bubbleRed}`} title={flight.dailyOpClosed ? `Cerrado por ${flight.dailyOpClosedBy}` : 'Pendiente cierre'}></div>
+                      <span className={styles.bubbleText}>Operativa</span>
+                    </div>
+                  )}
+                  <div className={styles.timeInfo} onClick={() => onEditFlight(flight)} style={{ cursor: 'pointer' }}>
                     <strong>Horario:</strong> {getFormattedTime(flight.startDate)} a {getFormattedTime(flight.endDate)}
                     {isMultiDay && (
                       <span className={styles.dateLabel}>
@@ -107,6 +131,16 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight }: Toda
           })}
         </div>
       </div>
+
+      {quickActionFlight && (
+        <OpCoordinationModal 
+          flight={quickActionFlight} 
+          onClose={() => setQuickActionFlight(null)} 
+          onUpdated={() => {
+            if (onDataUpdated) onDataUpdated();
+          }} 
+        />
+      )}
     </div>
   );
 }

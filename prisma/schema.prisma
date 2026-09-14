@@ -23,6 +23,8 @@ model Zone {
   id         Int      @id @default(autoincrement())
   name       String
   calendarId Int
+  requiresDailyCoordination Boolean @default(false)
+  periodicPermitExpiration  DateTime?
   calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   flights    Flight[]
 }
@@ -34,6 +36,12 @@ model Flight {
   endDate        DateTime
   coordination   String   // Confirmado, Pendiente, Anulada, etc.
   situation      String?
+  dailyOpOpened    Boolean   @default(false)
+  dailyOpOpenedBy  String?
+  dailyOpOpenedAt  DateTime?
+  dailyOpClosed    Boolean   @default(false)
+  dailyOpClosedBy  String?
+  dailyOpClosedAt  DateTime?
   calendarId     Int
   calendar       Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   zoneId         Int
