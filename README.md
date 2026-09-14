@@ -1,18 +1,25 @@
 # Coordinación TSA - Calendario de Operaciones de Vuelo
 
-Este es un sistema web interactivo diseñado para la gestión, visualización y coordinación de operaciones de vuelo en zonas segregadas temporalmente (TSA). La aplicación permite planificar vuelos, evitar colisiones horarias y gestionar múltiples calendarios y zonas de manera eficiente.
+Este es un sistema web interactivo diseñado para la gestión, visualización y coordinación de operaciones de vuelo en zonas segregadas temporalmente (TSA). La aplicación permite planificar vuelos, evitar colisiones horarias, gestionar operadores (pilotos) y coordinar operativamente los vuelos diarios con múltiples sitios de llamada de manera eficiente.
 
 ## 🚀 Características Principales
 
-- **Gestión de Calendarios**: Creación, renombrado y eliminación de calendarios independientes (por ejemplo, mensuales o anuales).
+- **Gestión de Calendarios**: Creación, renombrado, y eliminación de calendarios independientes. Ajustes globales de caducidad de permisos.
 - **Vista de Gantt Interactiva**:
   - Visualización en modo **Semanal** o **Mensual**.
   - Navegación temporal sencilla (Anterior, Hoy, Siguiente).
   - Haz clic en cualquier celda para añadir una nueva operación en la fecha y zona correspondientes.
+  - Actualización automática en segundo plano cada 5 minutos para mantener siempre la información sincronizada sin recargar la página bruscamente.
 - **Gestor de Zonas de Vuelo**: Añade, edita y elimina zonas de vuelo personalizadas para cada calendario.
+- **Base de Operadores (Pilotos)**: Listado centralizado de pilotos/operadores que se pueden asignar a los vuelos y coordinaciones.
 - **Formulario de Operaciones (Vuelos)**:
   - Información detallada: operador, fechas y horas de inicio y fin, notas sobre la situación actual.
   - Selección de estado de coordinación: **Confirmado**, **Pendiente** o **Anulada**.
+- **Coordinación Operativa Diaria (Banner Global)**:
+  - Posibilidad de definir múltiples **"Sitios a llamar"** (ej: Torrejón, Aeródromos) por calendario.
+  - Banner global para hacer seguimiento de las llamadas de Apertura y Cierre operativas de hoy.
+  - Firmas de apertura/cierre rápidas con registro de hora, responsable y sistema de anulación.
+  - Notas del día específicas para cada sitio de llamada.
 - **Sistema de Advertencia de Colisiones**: Detección en tiempo real de solapamientos horarios y espaciales entre dos vuelos activos en la misma zona de vuelo.
 - **Diseño Ultra Responsivo**: Interfaz optimizada con CSS puro y media queries para una experiencia excelente en teléfonos móviles, tablets y ordenadores.
 
@@ -34,22 +41,21 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
 ```text
 ├── data/                      # Directorio de datos persistidos (Base de Datos SQLite)
 ├── prisma/                    # Esquema y migraciones de Prisma
-│   └── schema.prisma          # Definición de modelos (Calendar, Zone, Flight)
+│   └── schema.prisma          # Definición de modelos (Calendar, Zone, Flight, Operator, CallTarget, DailyCallStatus)
 ├── src/
 │   ├── app/
 │   │   ├── actions.ts         # Server Actions de Next.js para base de datos (Prisma CRUD)
 │   │   ├── globals.css        # Estilos globales y variables de diseño
-│   │   ├── layout.tsx         # Diseño estructural raíz (Fuentes Outfit/Geist)
+│   │   ├── layout.tsx         # Diseño estructural raíz
 │   │   ├── page.tsx           # Página principal del dashboard (Server Component)
 │   │   └── page.module.css    # Estilos específicos de la página de inicio
 │   ├── components/
-│   │   ├── CalendarCreator.tsx  # Modal para creación de calendarios y zonas iniciales
-│   │   ├── CollisionWarnings.tsx # Lógica de detección de colisiones de vuelo
-│   │   ├── DashboardClient.tsx  # Control de pestañas y selección de calendario activo
-│   │   ├── FlightModal.tsx      # Formulario para añadir, editar o eliminar vuelos
-│   │   ├── FlightTable.tsx      # Listado de vuelos en formato tabla clásica
-│   │   ├── GanttView.tsx        # Renderizado de la cuadrícula Gantt
-│   │   └── ZoneManagerModal.tsx # Dialogo para añadir o cambiar nombres de zonas
+│   │   ├── DashboardClient.tsx      # Control principal interactivo de la interfaz
+│   │   ├── GanttView.tsx            # Renderizado de la cuadrícula Gantt y control de modales
+│   │   ├── FlightModal.tsx          # Formulario para añadir, editar o eliminar vuelos
+│   │   ├── GlobalTodayBanner.tsx    # Banner de coordinación operativa diaria y firmas
+│   │   ├── GeneralSettingsModal.tsx # Ajustes de caducidad y configuración de sitios a llamar
+│   │   └── PilotsModal.tsx          # Gestor de base de datos de operadores/pilotos
 │   └── lib/
 │       └── db.ts              # Cliente singleton de Prisma
 ├── docker-compose.yml         # Orquestación de contenedores (App y Tailscale VPN)
@@ -81,9 +87,9 @@ DATABASE_URL="file:../data/database.sqlite"
 # Instalar dependencias
 npm install
 
-# Generar el cliente de Prisma y ejecutar migraciones pendientes
+# Generar el cliente de Prisma y ejecutar migraciones pendientes (acepta pérdida de datos si hay cambios estructurales fuertes)
 npx prisma generate
-npx prisma db push
+npx prisma db push --accept-data-loss
 ```
 
 ### 4. Iniciar Servidor de Desarrollo
@@ -108,4 +114,8 @@ Para arrancar todo el ecosistema (aplicación web y túnel Tailscale opcional):
 docker compose up -d --build
 ```
 
-Esto compilará la aplicación y creará un archivo de base de datos persistido en el volumen `./data`. La aplicación escuchará por defecto en el puerto expuesto de Docker (o mediante la red segura de Tailscale configurada en `serve.json`).
+Esto compilará la aplicación y creará un archivo de base de datos persistido en el volumen `./data`. La aplicación escuchará por defecto en el puerto expuesto de Docker. Si realizas cambios en el esquema de Prisma en producción, recuerda aplicar los cambios a la base de datos dentro del contenedor:
+
+```bash
+docker compose run --rm app npx prisma db push --accept-data-loss
+```
