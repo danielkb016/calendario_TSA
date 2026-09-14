@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import CalendarCreator from './CalendarCreator';
 import GanttView from './GanttView';
 import PilotsModal from './PilotsModal';
@@ -24,6 +25,7 @@ type Calendar = {
 };
 
 export default function DashboardClient({ initialCalendars, globalOperators }: { initialCalendars: Calendar[], globalOperators: Operator[] }) {
+  const router = useRouter();
   const [activeCalendarId, setActiveCalendarId] = useState<number | null>(
     initialCalendars.length > 0 ? initialCalendars[0].id : null
   );
@@ -32,6 +34,14 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
   const [editTitleVal, setEditTitleVal] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isPilotsModalOpen, setIsPilotsModalOpen] = useState(false);
+
+  // Auto-refresh every 5 minutes (300,000 ms) to keep daily coordinations updated
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 300000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const activeCalendar = initialCalendars.find(c => c.id === activeCalendarId);
 
@@ -159,7 +169,7 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
           operators={globalOperators}
           onClose={() => setIsPilotsModalOpen(false)} 
           onUpdated={() => {
-            window.location.reload();
+            router.refresh();
           }} 
         />
       )}

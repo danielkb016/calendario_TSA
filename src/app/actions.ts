@@ -9,6 +9,7 @@ export async function getCalendars() {
   return await prisma.calendar.findMany({
     include: {
       zones: true,
+      callTargets: true,
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -62,6 +63,24 @@ export async function deleteOperator(id: number) {
   revalidatePath('/');
 }
 
+// -- Call Targets --
+
+export async function addCallTarget(calendarId: number, name: string) {
+  const target = await prisma.callTarget.create({
+    data: {
+      calendarId,
+      name
+    }
+  });
+  revalidatePath('/');
+  return target;
+}
+
+export async function deleteCallTarget(id: number) {
+  await prisma.callTarget.delete({ where: { id } });
+  revalidatePath('/');
+}
+
 // -- Flights --
 
 export async function getFlights(calendarId: number) {
@@ -93,25 +112,67 @@ export async function getFlights(calendarId: number) {
   });
 }
 
-export async function getTodayGlobalFlights() {
+export async function getTodayGlobalCoordinations() {
   const today = new Date();
+  // We use the start of the local day to uniquely identify "today" for the daily coordination
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
-  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
-  return await prisma.flight.findMany({
-    where: {
-      calendar: {
-        requiresDailyCoordination: true
-      },
-      startDate: { lte: endOfToday },
-      endDate: { gte: startOfToday }
-    },
-    include: {
-      zone: true,
-      calendar: true
-    },
-    orderBy: { startDate: 'asc' }
+  // Get all calendars that require daily coordination and include their call targets
+  const calendars = await prisma.calendar.findMany({
+    where: { requiresDailyCoordination: true },
+    include: { callTargets: true }
   });
+
+  const results = [];
+  
+  for (const cal of calendars) {
+    const statuses = [];
+    for (const target of cal.callTargets) {
+      // Upsert the daily status for this target and today's date
+      const status = await prisma.dailyCallStatus.upsert({
+        where: {
+          callTargetId_date: {
+            callTargetId: target.id,
+            date: startOfToday
+          }
+        },
+        update: {},
+        create: {
+          callTargetId: target.id,
+          date: startOfToday
+        },
+        include: {
+          callTarget: {
+            include: { calendar: true }
+          }
+        }
+      });
+      statuses.push(status);
+    }
+    // Only push if there are targets to call for this calendar
+    if (statuses.length > 0) {
+      results.push({
+        calendar: cal,
+        statuses: statuses
+      });
+    }
+  }
+
+  return results;
+}
+
+export async function updateDailyCallStatus(id: number, data: Partial<{
+  opened: boolean;
+  openedBy: string | null;
+  openedAt: Date | null;
+  closed: boolean;
+  closedBy: string | null;
+  closedAt: Date | null;
+  notes: string | null;
+}>) {
+  const coord = await prisma.dailyCallStatus.update({ where: { id }, data });
+  revalidatePath('/');
+  return coord;
 }
 
 export async function createFlight(data: {
@@ -135,12 +196,6 @@ export async function updateFlight(id: number, data: Partial<{
   coordination: string;
   situation: string;
   zoneId: number;
-  dailyOpOpened: boolean;
-  dailyOpOpenedBy: string | null;
-  dailyOpOpenedAt: Date | null;
-  dailyOpClosed: boolean;
-  dailyOpClosedBy: string | null;
-  dailyOpClosedAt: Date | null;
 }>) {
   const flight = await prisma.flight.update({ where: { id }, data });
   revalidatePath('/');

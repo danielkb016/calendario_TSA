@@ -17,8 +17,33 @@ model Calendar {
   updatedAt DateTime @updatedAt
   periodicPermitExpiration  DateTime?
   requiresDailyCoordination Boolean @default(false)
-  zones     Zone[]
-  flights   Flight[]
+  zones               Zone[]
+  flights             Flight[]
+  callTargets         CallTarget[]
+}
+
+model CallTarget {
+  id         Int      @id @default(autoincrement())
+  name       String
+  calendarId Int
+  calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  dailyStatuses DailyCallStatus[]
+}
+
+model DailyCallStatus {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  opened       Boolean  @default(false)
+  openedBy     String?
+  openedAt     DateTime?
+  closed       Boolean  @default(false)
+  closedBy     String?
+  closedAt     DateTime?
+  notes        String?
+  callTargetId Int
+  callTarget   CallTarget @relation(fields: [callTargetId], references: [id], onDelete: Cascade)
+
+  @@unique([callTargetId, date])
 }
 
 model Operator {
@@ -41,12 +66,6 @@ model Flight {
   endDate        DateTime
   coordination   String   // Confirmado, Pendiente, Anulada, etc.
   situation      String?
-  dailyOpOpened    Boolean   @default(false)
-  dailyOpOpenedBy  String?
-  dailyOpOpenedAt  DateTime?
-  dailyOpClosed    Boolean   @default(false)
-  dailyOpClosedBy  String?
-  dailyOpClosedAt  DateTime?
   calendarId     Int
   calendar       Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   zoneId         Int

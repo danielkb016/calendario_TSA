@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { getFlights } from '@/app/actions';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getFlights, deleteFlight } from '@/app/actions';
 import FlightModal from './FlightModal';
 import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
@@ -17,12 +18,6 @@ type Flight = {
   endDate: Date;
   coordination: string;
   situation: string | null;
-  dailyOpOpened: boolean;
-  dailyOpOpenedBy: string | null;
-  dailyOpOpenedAt: Date | null;
-  dailyOpClosed: boolean;
-  dailyOpClosedBy: string | null;
-  dailyOpClosedAt: Date | null;
   zoneId: number;
 };
 
@@ -48,6 +43,7 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [editingFlight, setEditingFlight] = useState<Flight | null>(null);
+  const router = useRouter();
   const [isManagingZones, setIsManagingZones] = useState(false);
   const [isManagingSettings, setIsManagingSettings] = useState(false);
 
@@ -202,9 +198,7 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
           <TodayStatusBanner 
             flights={flights} 
             zones={calendar.zones} 
-            operators={operators}
             onEditFlight={setEditingFlight}
-            onDataUpdated={fetchFlights}
           />
         </div>
       )}
@@ -340,7 +334,7 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
           calendar={calendar} 
           onClose={() => setIsManagingSettings(false)} 
           onUpdated={() => {
-            window.location.reload(); // Hard refresh to update parent props since calendar is passed as a prop from server
+            router.refresh(); // Soft refresh to update parent props
           }} 
         />
       )}

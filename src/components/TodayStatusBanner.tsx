@@ -11,35 +11,16 @@ type Flight = {
   endDate: Date;
   coordination: string;
   situation: string | null;
-  dailyOpOpened: boolean;
-  dailyOpOpenedBy: string | null;
-  dailyOpOpenedAt: Date | null;
-  dailyOpClosed: boolean;
-  dailyOpClosedBy: string | null;
-  dailyOpClosedAt: Date | null;
   zoneId: number;
-};
-
-type Zone = {
-  id: number;
-  name: string;
-};
-
-type Operator = {
-  id: number;
-  name: string;
 };
 
 interface TodayStatusBannerProps {
   flights: Flight[];
-  zones: Zone[];
-  operators: Operator[];
+  zones: { id: number; name: string }[];
   onEditFlight: (flight: Flight) => void;
-  onDataUpdated?: () => void;
 }
 
-export default function TodayStatusBanner({ flights, zones, operators, onEditFlight, onDataUpdated }: TodayStatusBannerProps) {
-  const [quickActionFlight, setQuickActionFlight] = useState<Flight | null>(null);
+export default function TodayStatusBanner({ flights, zones, onEditFlight }: TodayStatusBannerProps) {
 
   // Get start and end of today in local time
   const today = new Date();
@@ -104,15 +85,7 @@ export default function TodayStatusBanner({ flights, zones, operators, onEditFli
                   </span>
                 </div>
                 <div className={styles.cardBody}>
-                  <div 
-                    className={styles.opBubbles}
-                    onClick={(e) => { e.stopPropagation(); setQuickActionFlight(flight); }}
-                    title="Haz clic para gestionar la Apertura/Cierre operativo"
-                  >
-                    <div className={`${styles.bubble} ${flight.dailyOpOpened ? styles.bubbleGreen : styles.bubbleRed}`} title={flight.dailyOpOpened ? `Abierto por ${flight.dailyOpOpenedBy}` : 'Pendiente apertura'}></div>
-                    <div className={`${styles.bubble} ${flight.dailyOpClosed ? styles.bubbleGreen : flight.dailyOpOpened ? styles.bubbleOrange : styles.bubbleRed}`} title={flight.dailyOpClosed ? `Cerrado por ${flight.dailyOpClosedBy}` : 'Pendiente cierre'}></div>
-                    <span className={styles.bubbleText}>Operativa</span>
-                  </div>
+
                   <div className={styles.timeInfo} onClick={() => onEditFlight(flight)} style={{ cursor: 'pointer' }}>
                     <strong>Horario:</strong> {getFormattedTime(flight.startDate)} a {getFormattedTime(flight.endDate)}
                     {isMultiDay && (
@@ -136,16 +109,7 @@ export default function TodayStatusBanner({ flights, zones, operators, onEditFli
         </div>
       </div>
 
-      {quickActionFlight && (
-        <OpCoordinationModal 
-          flight={quickActionFlight}
-          operators={operators} 
-          onClose={() => setQuickActionFlight(null)} 
-          onUpdated={() => {
-            if (onDataUpdated) onDataUpdated();
-          }} 
-        />
-      )}
+
     </div>
   );
 }
