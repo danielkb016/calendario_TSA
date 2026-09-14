@@ -1,12 +1,14 @@
 export const dynamic = 'force-dynamic';
 
-import { getCalendars, getOperators } from './actions';
+import { getCalendars, getOperators, getTodayGlobalFlights } from './actions';
 import DashboardClient from '@/components/DashboardClient';
+import GlobalTodayBanner from '@/components/GlobalTodayBanner';
 import styles from './page.module.css';
 
 export default async function Home() {
   const calendars = await getCalendars();
   const operators = await getOperators();
+  const globalFlights = await getTodayGlobalFlights();
 
   return (
     <main className={styles.main}>
@@ -20,6 +22,7 @@ export default async function Home() {
         </div>
       </header>
 
+      <GlobalTodayBanner flights={globalFlights} operators={operators} />
       <DashboardClient initialCalendars={calendars} globalOperators={operators} />
     </main>
   );

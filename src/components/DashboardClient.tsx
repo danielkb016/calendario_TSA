@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import CalendarCreator from './CalendarCreator';
 import GanttView from './GanttView';
-import GeneralSettingsModal from './GeneralSettingsModal';
+import PilotsModal from './PilotsModal';
 import styles from './DashboardClient.module.css';
 import { updateCalendar, deleteCalendar } from '@/app/actions';
 
@@ -31,7 +31,7 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
   const [editingCalendarId, setEditingCalendarId] = useState<number | null>(null);
   const [editTitleVal, setEditTitleVal] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPilotsModalOpen, setIsPilotsModalOpen] = useState(false);
 
   const activeCalendar = initialCalendars.find(c => c.id === activeCalendarId);
 
@@ -148,17 +148,16 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
         </button>
         <button 
           className={styles.headerBtn}
-          onClick={() => setIsSettingsOpen(true)}
+          onClick={() => setIsPilotsModalOpen(true)}
         >
-          ⚙️ Ajustes Generales
+          👥 Lista de Pilotos
         </button>
       </div>
 
-      {isSettingsOpen && activeCalendar && (
-        <GeneralSettingsModal 
-          calendar={activeCalendar} 
+      {isPilotsModalOpen && (
+        <PilotsModal 
           operators={globalOperators}
-          onClose={() => setIsSettingsOpen(false)} 
+          onClose={() => setIsPilotsModalOpen(false)} 
           onUpdated={() => {
             window.location.reload();
           }} 

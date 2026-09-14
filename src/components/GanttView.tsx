@@ -237,7 +237,7 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
             🏔️ Zonas de Vuelo
           </button>
           <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsManagingSettings(true)}>
-            ⚙️ Ajustes Generales
+            ⚙️ Ajustes del Calendario
           </button>
         </div>
       </div>
@@ -338,7 +338,6 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
       {isManagingSettings && (
         <GeneralSettingsModal 
           calendar={calendar} 
-          operators={operators}
           onClose={() => setIsManagingSettings(false)} 
           onUpdated={() => {
             window.location.reload(); // Hard refresh to update parent props since calendar is passed as a prop from server

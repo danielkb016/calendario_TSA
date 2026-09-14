@@ -93,6 +93,27 @@ export async function getFlights(calendarId: number) {
   });
 }
 
+export async function getTodayGlobalFlights() {
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+  return await prisma.flight.findMany({
+    where: {
+      calendar: {
+        requiresDailyCoordination: true
+      },
+      startDate: { lte: endOfToday },
+      endDate: { gte: startOfToday }
+    },
+    include: {
+      zone: true,
+      calendar: true
+    },
+    orderBy: { startDate: 'asc' }
+  });
+}
+
 export async function createFlight(data: {
   operator: string;
   startDate: Date;
