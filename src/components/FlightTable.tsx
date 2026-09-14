@@ -22,7 +22,6 @@ type Zone = {
   id: number;
   name: string;
   requiresDailyCoordination: boolean;
-  periodicPermitExpiration: Date | null;
 };
 
 export default function FlightTable({ 

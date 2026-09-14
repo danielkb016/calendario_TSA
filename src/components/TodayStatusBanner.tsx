@@ -26,13 +26,20 @@ type Zone = {
   requiresDailyCoordination: boolean;
 };
 
+type Operator = {
+  id: number;
+  name: string;
+};
+
 interface TodayStatusBannerProps {
   flights: Flight[];
   zones: Zone[];
+  operators: Operator[];
   onEditFlight: (flight: Flight) => void;
+  onDataUpdated?: () => void;
 }
 
-export default function TodayStatusBanner({ flights, zones, onEditFlight, onDataUpdated }: TodayStatusBannerProps & { onDataUpdated?: () => void }) {
+export default function TodayStatusBanner({ flights, zones, operators, onEditFlight, onDataUpdated }: TodayStatusBannerProps) {
   const [quickActionFlight, setQuickActionFlight] = useState<Flight | null>(null);
 
   // Get start and end of today in local time
@@ -134,7 +141,8 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight, onData
 
       {quickActionFlight && (
         <OpCoordinationModal 
-          flight={quickActionFlight} 
+          flight={quickActionFlight}
+          operators={operators} 
           onClose={() => setQuickActionFlight(null)} 
           onUpdated={() => {
             if (onDataUpdated) onDataUpdated();

@@ -8,7 +8,6 @@ type Zone = {
   id: number;
   name: string;
   requiresDailyCoordination: boolean;
-  periodicPermitExpiration: Date | null;
 };
 
 type Calendar = {
@@ -30,7 +29,6 @@ export default function ZoneManagerModal({
   const [editingZoneId, setEditingZoneId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingRequiresDaily, setEditingRequiresDaily] = useState(false);
-  const [editingPeriodicExp, setEditingPeriodicExp] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleAddZone = async (e: React.FormEvent) => {
@@ -54,11 +52,9 @@ export default function ZoneManagerModal({
     if (!editingName.trim()) return;
     setLoading(true);
     try {
-      const expirationDate = editingPeriodicExp ? new Date(editingPeriodicExp) : null;
       await updateZone(id, { 
         name: editingName.trim(), 
-        requiresDailyCoordination: editingRequiresDaily, 
-        periodicPermitExpiration: expirationDate 
+        requiresDailyCoordination: editingRequiresDaily
       });
       setEditingZoneId(null);
       onZonesChanged();
@@ -123,15 +119,6 @@ export default function ZoneManagerModal({
                           Requiere coordinación operativa diaria (Apertura/Cierre)
                         </label>
                       </div>
-                      <div className={styles.formGroup}>
-                        <label>Fecha de caducidad del permiso periódico (Opcional)</label>
-                        <input
-                          type="date"
-                          value={editingPeriodicExp}
-                          onChange={e => setEditingPeriodicExp(e.target.value)}
-                          className={styles.input}
-                        />
-                      </div>
                       <div className={styles.editActions}>
                         <button
                           onClick={() => handleSaveEdit(zone.id)}
@@ -158,7 +145,6 @@ export default function ZoneManagerModal({
                             setEditingZoneId(zone.id);
                             setEditingName(zone.name);
                             setEditingRequiresDaily(zone.requiresDailyCoordination);
-                            setEditingPeriodicExp(zone.periodicPermitExpiration ? new Date(zone.periodicPermitExpiration).toISOString().split('T')[0] : '');
                           }}
                           disabled={loading}
                           className={`${styles.btn} ${styles.btnEdit}`}

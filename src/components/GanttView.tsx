@@ -6,6 +6,7 @@ import FlightModal from './FlightModal';
 import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
 import ZoneManagerModal from './ZoneManagerModal';
+import GeneralSettingsModal from './GeneralSettingsModal';
 import TodayStatusBanner from './TodayStatusBanner';
 import styles from './GanttView.module.css';
 
@@ -25,14 +26,20 @@ type Flight = {
   zoneId: number;
 };
 
+type Operator = {
+  id: number;
+  name: string;
+};
+
 type Calendar = {
   id: number;
   title: string;
+  periodicPermitExpiration: Date | null;
+  operators: Operator[];
   zones: { 
     id: number; 
     name: string;
     requiresDailyCoordination: boolean;
-    periodicPermitExpiration: Date | null;
   }[];
 };
 
@@ -43,6 +50,7 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [editingFlight, setEditingFlight] = useState<Flight | null>(null);
   const [isManagingZones, setIsManagingZones] = useState(false);
+  const [isManagingSettings, setIsManagingSettings] = useState(false);
 
   const fetchFlights = async () => {
     setLoading(true);
@@ -162,9 +170,35 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
   const historicalFlights = flights.filter(f => ['Anulada', 'Finalizada'].includes(f.coordination))
     .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 
+  // Global permit expiration check
+  let isExpiringSoon = false;
+  let isExpired = false;
+  const today = new Date();
+  
+  if (calendar.periodicPermitExpiration) {
+    const expDate = new Date(calendar.periodicPermitExpiration);
+    const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysLeft < 0) {
+      isExpired = true;
+    } else if (daysLeft <= 30) {
+      isExpiringSoon = true;
+    }
+  }
+
   return (
     <div className={styles.container}>
-      <TodayStatusBanner flights={flights} zones={calendar.zones} onEditFlight={setEditingFlight} />
+      {isExpired && (
+        <div style={{ backgroundColor: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
+          ❌ El permiso periódico del calendario ha caducado.
+        </div>
+      )}
+      {isExpiringSoon && !isExpired && (
+        <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fbbf24', color: '#b45309', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
+          ⚠️ El permiso periódico del calendario caduca pronto ({new Date(calendar.periodicPermitExpiration!).toLocaleDateString()}).
+        </div>
+      )}
+
+      <TodayStatusBanner flights={flights} zones={calendar.zones} operators={calendar.operators} onEditFlight={setEditingFlight} onDataUpdated={fetchFlights} />
 
       <div className={styles.controlBar}>
         <div className={styles.navigation}>
@@ -189,9 +223,14 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
           </button>
         </div>
 
-        <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsManagingZones(true)}>
-          🏔️ Gestionar Zonas de Vuelo
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsManagingZones(true)}>
+            🏔️ Zonas de Vuelo
+          </button>
+          <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsManagingSettings(true)}>
+            ⚙️ Ajustes Generales
+          </button>
+        </div>
       </div>
 
       <CollisionWarnings flights={flights} zones={calendar.zones} />
@@ -211,36 +250,12 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
 
           {/* Zones and Grid */}
           {calendar.zones.map(zone => {
-            const today = new Date();
-            let isExpiringSoon = false;
-            let isExpired = false;
-            
-            if (zone.periodicPermitExpiration) {
-              const expDate = new Date(zone.periodicPermitExpiration);
-              const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-              if (daysLeft < 0) {
-                isExpired = true;
-              } else if (daysLeft <= 30) {
-                isExpiringSoon = true;
-              }
-            }
-
             return (
             <React.Fragment key={zone.id}>
               <div className={styles.zoneCell}>
                 <div className={styles.zoneIcon}>🏔️</div>
                 <div className={styles.zoneName}>
                   {zone.name}
-                  {isExpired && (
-                    <div className={styles.expirationWarning} style={{ color: '#dc3545', fontSize: '0.75rem', marginTop: '4px' }}>
-                      ❌ Permiso caducado
-                    </div>
-                  )}
-                  {isExpiringSoon && !isExpired && (
-                    <div className={styles.expirationWarning} style={{ color: '#f59e0b', fontSize: '0.75rem', marginTop: '4px' }}>
-                      ⚠️ Caduca pronto ({new Date(zone.periodicPermitExpiration!).toLocaleDateString()})
-                    </div>
-                  )}
                 </div>
               </div>
               
@@ -308,6 +323,16 @@ export default function GanttView({ calendar }: { calendar: Calendar }) {
           calendar={calendar}
           onClose={() => setIsManagingZones(false)}
           onZonesChanged={() => fetchFlights()}
+        />
+      )}
+
+      {isManagingSettings && (
+        <GeneralSettingsModal 
+          calendar={calendar} 
+          onClose={() => setIsManagingSettings(false)} 
+          onUpdated={() => {
+            window.location.reload(); // Hard refresh to update parent props since calendar is passed as a prop from server
+          }} 
         />
       )}
     </div>

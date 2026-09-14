@@ -9,6 +9,7 @@ export async function getCalendars() {
   return await prisma.calendar.findMany({
     include: {
       zones: true,
+      operators: true,
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -32,13 +33,31 @@ export async function deleteCalendar(id: number) {
   revalidatePath('/');
 }
 
-export async function updateCalendar(id: number, title: string) {
+export async function updateCalendar(id: number, data: { title?: string; periodicPermitExpiration?: Date | null }) {
   const calendar = await prisma.calendar.update({
     where: { id },
-    data: { title }
+    data
   });
   revalidatePath('/');
   return calendar;
+}
+
+// -- Operators --
+
+export async function addOperator(calendarId: number, name: string) {
+  const operator = await prisma.operator.create({
+    data: {
+      calendarId,
+      name
+    }
+  });
+  revalidatePath('/');
+  return operator;
+}
+
+export async function deleteOperator(id: number) {
+  await prisma.operator.delete({ where: { id } });
+  revalidatePath('/');
 }
 
 // -- Flights --
@@ -123,7 +142,7 @@ export async function addZone(calendarId: number, name: string) {
   return zone;
 }
 
-export async function updateZone(id: number, data: { name?: string; requiresDailyCoordination?: boolean; periodicPermitExpiration?: Date | null }) {
+export async function updateZone(id: number, data: { name?: string; requiresDailyCoordination?: boolean }) {
   const zone = await prisma.zone.update({
     where: { id },
     data

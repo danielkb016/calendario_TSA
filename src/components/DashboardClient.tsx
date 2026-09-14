@@ -6,14 +6,20 @@ import GanttView from './GanttView';
 import styles from './DashboardClient.module.css';
 import { updateCalendar, deleteCalendar } from '@/app/actions';
 
+type Operator = {
+  id: number;
+  name: string;
+};
+
 type Calendar = {
   id: number;
   title: string;
+  periodicPermitExpiration: Date | null;
+  operators: Operator[];
   zones: { 
     id: number; 
     name: string;
     requiresDailyCoordination: boolean;
-    periodicPermitExpiration: Date | null;
   }[];
 };
 
@@ -39,7 +45,7 @@ export default function DashboardClient({ initialCalendars }: { initialCalendars
     if (!editTitleVal.trim()) return;
     setIsSaving(true);
     try {
-      await updateCalendar(id, editTitleVal.trim());
+      await updateCalendar(id, { title: editTitleVal.trim() });
       setEditingCalendarId(null);
     } catch (err) {
       console.error(err);

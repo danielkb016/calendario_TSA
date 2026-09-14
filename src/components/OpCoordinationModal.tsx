@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { updateFlight } from '@/app/actions';
 import styles from './OpCoordinationModal.module.css';
 
-// TODO: En el futuro esto podría venir de la base de datos
-const OPERATORS = ['Dani', 'Coordinador Base', 'Piloto al mando', 'Operador Dron'];
+type Operator = {
+  id: number;
+  name: string;
+};
 
 type Flight = {
   id: number;
@@ -19,10 +21,12 @@ type Flight = {
 
 export default function OpCoordinationModal({
   flight,
+  operators,
   onClose,
   onUpdated
 }: {
   flight: Flight;
+  operators: Operator[];
   onClose: () => void;
   onUpdated: () => void;
 }) {
@@ -101,8 +105,8 @@ export default function OpCoordinationModal({
                 className={styles.select}
               >
                 <option value="" disabled>-- Seleccione un responsable --</option>
-                {OPERATORS.map(op => (
-                  <option key={op} value={op}>{op}</option>
+                {operators.map(op => (
+                  <option key={op.id} value={op.name}>{op.name}</option>
                 ))}
                 <option value="Otro">Otro...</option>
               </select>
