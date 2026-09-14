@@ -27,10 +27,11 @@ export default function OpCoordinationModal({
   onUpdated: () => void;
 }) {
   const [loading, setLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(OPERATORS[0]);
+  const [selectedUser, setSelectedUser] = useState('');
   const [customUser, setCustomUser] = useState('');
 
   const handleAction = async (action: 'open' | 'close') => {
+    if (!selectedUser) return;
     setLoading(true);
     const user = selectedUser === 'Otro' ? customUser : selectedUser;
     
@@ -99,6 +100,7 @@ export default function OpCoordinationModal({
                 onChange={e => setSelectedUser(e.target.value)}
                 className={styles.select}
               >
+                <option value="" disabled>-- Seleccione un responsable --</option>
                 {OPERATORS.map(op => (
                   <option key={op} value={op}>{op}</option>
                 ))}
@@ -121,7 +123,7 @@ export default function OpCoordinationModal({
                   <button 
                     className={`${styles.btn} ${styles.btnOpen}`}
                     onClick={() => handleAction('open')}
-                    disabled={loading || (selectedUser === 'Otro' && !customUser.trim())}
+                    disabled={loading || !selectedUser || (selectedUser === 'Otro' && !customUser.trim())}
                   >
                     Marcar como ABIERTO
                   </button>
@@ -130,7 +132,7 @@ export default function OpCoordinationModal({
                   <button 
                     className={`${styles.btn} ${styles.btnCloseAction}`}
                     onClick={() => handleAction('close')}
-                    disabled={loading || (selectedUser === 'Otro' && !customUser.trim())}
+                    disabled={loading || !selectedUser || (selectedUser === 'Otro' && !customUser.trim())}
                   >
                     Marcar como CERRADO
                   </button>
