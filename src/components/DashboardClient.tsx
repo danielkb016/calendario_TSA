@@ -13,15 +13,33 @@ type Operator = {
   name: string;
 };
 
+type GlobalPermit = {
+  id: number;
+  name: string;
+  expirationDate: Date;
+};
+
+type CallTarget = {
+  id: number;
+  name: string;
+  requiresOpening: boolean;
+  requiresClosing: boolean;
+};
+
+type Zone = {
+  id: number;
+  name: string;
+};
+
 type Calendar = {
   id: number;
   title: string;
-  periodicPermitExpiration: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
   requiresDailyCoordination: boolean;
-  zones: { 
-    id: number; 
-    name: string;
-  }[];
+  zones: Zone[];
+  callTargets: CallTarget[];
+  globalPermits: GlobalPermit[];
 };
 
 export default function DashboardClient({ initialCalendars, globalOperators }: { initialCalendars: Calendar[], globalOperators: Operator[] }) {

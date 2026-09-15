@@ -29,7 +29,7 @@ type Operator = {
 type Calendar = {
   id: number;
   title: string;
-  periodicPermitExpiration: Date | null;
+  globalPermits: { id: number; name: string; expirationDate: Date }[];
   requiresDailyCoordination: boolean;
   zones: { 
     id: number; 
@@ -166,30 +166,32 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
     .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 
   // Global permit expiration check
-  let isExpiringSoon = false;
-  let isExpired = false;
+  const expiringPermits: { name: string; expirationDate: Date }[] = [];
+  const expiredPermits: { name: string; expirationDate: Date }[] = [];
   const today = new Date();
   
-  if (calendar.periodicPermitExpiration) {
-    const expDate = new Date(calendar.periodicPermitExpiration);
-    const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysLeft < 0) {
-      isExpired = true;
-    } else if (daysLeft <= 30) {
-      isExpiringSoon = true;
-    }
+  if (calendar.globalPermits) {
+    calendar.globalPermits.forEach(permit => {
+      const expDate = new Date(permit.expirationDate);
+      const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysLeft < 0) {
+        expiredPermits.push(permit);
+      } else if (daysLeft <= 30) {
+        expiringPermits.push(permit);
+      }
+    });
   }
 
   return (
     <div className={styles.container}>
-      {isExpired && (
+      {expiredPermits.length > 0 && (
         <div style={{ backgroundColor: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
-          ❌ El permiso periódico del calendario ha caducado.
+          ❌ Han caducado los siguientes permisos: {expiredPermits.map(p => p.name).join(', ')}.
         </div>
       )}
-      {isExpiringSoon && !isExpired && (
+      {expiringPermits.length > 0 && (
         <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fbbf24', color: '#b45309', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
-          ⚠️ El permiso periódico del calendario caduca pronto ({new Date(calendar.periodicPermitExpiration!).toLocaleDateString()}).
+          ⚠️ Los siguientes permisos caducan pronto: {expiringPermits.map(p => `${p.name} (${new Date(p.expirationDate).toLocaleDateString()})`).join(', ')}.
         </div>
       )}
 

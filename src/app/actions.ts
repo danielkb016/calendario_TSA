@@ -10,6 +10,7 @@ export async function getCalendars() {
     include: {
       zones: true,
       callTargets: true,
+      globalPermits: true,
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -33,13 +34,10 @@ export async function deleteCalendar(id: number) {
   revalidatePath('/');
 }
 
-export async function updateCalendar(id: number, data: { title?: string; periodicPermitExpiration?: Date | null; requiresDailyCoordination?: boolean }) {
-  const calendar = await prisma.calendar.update({
-    where: { id },
-    data
-  });
+export async function updateCalendar(id: number, data: Partial<{ title: string; requiresDailyCoordination: boolean }>) {
+  const cal = await prisma.calendar.update({ where: { id }, data });
   revalidatePath('/');
-  return calendar;
+  return cal;
 }
 
 // -- Operators --
@@ -65,11 +63,13 @@ export async function deleteOperator(id: number) {
 
 // -- Call Targets --
 
-export async function addCallTarget(calendarId: number, name: string) {
+export async function addCallTarget(calendarId: number, name: string, requiresOpening: boolean = true, requiresClosing: boolean = true) {
   const target = await prisma.callTarget.create({
     data: {
       calendarId,
-      name
+      name,
+      requiresOpening,
+      requiresClosing
     }
   });
   revalidatePath('/');
@@ -78,6 +78,25 @@ export async function addCallTarget(calendarId: number, name: string) {
 
 export async function deleteCallTarget(id: number) {
   await prisma.callTarget.delete({ where: { id } });
+  revalidatePath('/');
+}
+
+// -- Global Permits --
+
+export async function addGlobalPermit(calendarId: number, name: string, expirationDate: Date) {
+  const permit = await prisma.globalPermit.create({
+    data: {
+      calendarId,
+      name,
+      expirationDate
+    }
+  });
+  revalidatePath('/');
+  return permit;
+}
+
+export async function deleteGlobalPermit(id: number) {
+  await prisma.globalPermit.delete({ where: { id } });
   revalidatePath('/');
 }
 

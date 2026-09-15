@@ -12,6 +12,8 @@ type Operator = {
 type CallTarget = {
   id: number;
   name: string;
+  requiresOpening?: boolean;
+  requiresClosing?: boolean;
   calendar?: { id: number; title: string };
 };
 
@@ -116,36 +118,40 @@ export default function OpCoordinationModal({
 
         <div className={styles.content}>
           <div className={styles.statusSection}>
-            <div className={styles.statusItem}>
-              <span className={styles.statusLabel}>Apertura:</span>
-              {status.opened ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <span className={styles.statusDone}>
-                    ✅ Abierto por {status.openedBy} el {status.openedAt ? new Date(status.openedAt).toLocaleTimeString() : ''}
-                  </span>
-                  <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_open')} disabled={loading}>Anular</button>
-                </div>
-              ) : (
-                <span className={styles.statusPending}>❌ Pendiente de abrir</span>
-              )}
-            </div>
+            {(status.callTarget?.requiresOpening ?? true) && (
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Apertura:</span>
+                {status.opened ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span className={styles.statusDone}>
+                      ✅ Abierto por {status.openedBy} el {status.openedAt ? new Date(status.openedAt).toLocaleTimeString() : ''}
+                    </span>
+                    <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_open')} disabled={loading}>Anular</button>
+                  </div>
+                ) : (
+                  <span className={styles.statusPending}>❌ Pendiente de abrir</span>
+                )}
+              </div>
+            )}
             
-            <div className={styles.statusItem}>
-              <span className={styles.statusLabel}>Cierre:</span>
-              {status.closed ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <span className={styles.statusDone}>
-                    ✅ Cerrado por {status.closedBy} el {status.closedAt ? new Date(status.closedAt).toLocaleTimeString() : ''}
-                  </span>
-                  <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_close')} disabled={loading}>Anular</button>
-                </div>
-              ) : (
-                <span className={styles.statusPending}>❌ Pendiente de cerrar</span>
-              )}
-            </div>
+            {(status.callTarget?.requiresClosing ?? true) && (
+              <div className={styles.statusItem}>
+                <span className={styles.statusLabel}>Cierre:</span>
+                {status.closed ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span className={styles.statusDone}>
+                      ✅ Cerrado por {status.closedBy} el {status.closedAt ? new Date(status.closedAt).toLocaleTimeString() : ''}
+                    </span>
+                    <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_close')} disabled={loading}>Anular</button>
+                  </div>
+                ) : (
+                  <span className={styles.statusPending}>❌ Pendiente de cerrar</span>
+                )}
+              </div>
+            )}
           </div>
 
-          {(!status.opened || !status.closed) && (
+          {((status.callTarget?.requiresOpening ?? true) && !status.opened || (status.callTarget?.requiresClosing ?? true) && !status.closed) && (
             <div className={styles.actionForm}>
               <label>Selecciona quién realiza la llamada a {status.callTarget?.name}:</label>
               <select 
@@ -172,7 +178,7 @@ export default function OpCoordinationModal({
               )}
 
               <div className={styles.buttons}>
-                {!status.opened && (
+                {(status.callTarget?.requiresOpening ?? true) && !status.opened && (
                   <button 
                     className={`${styles.btn} ${styles.btnOpen}`}
                     onClick={() => handleAction('open')}
@@ -181,7 +187,7 @@ export default function OpCoordinationModal({
                     Marcar como ABIERTO
                   </button>
                 )}
-                {status.opened && !status.closed && (
+                {(status.callTarget?.requiresClosing ?? true) && !status.closed && (!(status.callTarget?.requiresOpening ?? true) || status.opened) && (
                   <button 
                     className={`${styles.btn} ${styles.btnCloseAction}`}
                     onClick={() => handleAction('close')}

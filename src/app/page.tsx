@@ -16,7 +16,7 @@ export default async function Home() {
         <div>
           <h1 className={styles.title}>
             Coordinaciones TSA
-            <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.1</span>
+            <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.2</span>
           </h1>
           <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
         </div>
