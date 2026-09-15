@@ -6,9 +6,6 @@ import { getFlights, deleteFlight } from '@/app/actions';
 import FlightModal from './FlightModal';
 import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
-import ZoneManagerModal from './ZoneManagerModal';
-import GeneralSettingsModal from './GeneralSettingsModal';
-import PilotsModal from './PilotsModal';
 import TodayStatusBanner from './TodayStatusBanner';
 import styles from './GanttView.module.css';
 
@@ -45,9 +42,6 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [editingFlight, setEditingFlight] = useState<Flight | null>(null);
   const router = useRouter();
-  const [isManagingZones, setIsManagingZones] = useState(false);
-  const [isManagingSettings, setIsManagingSettings] = useState(false);
-  const [isPilotsModalOpen, setIsPilotsModalOpen] = useState(false);
 
   const fetchFlights = async () => {
     setLoading(true);
@@ -229,18 +223,6 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
             Mes
           </button>
         </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsManagingZones(true)}>
-            🏔️ Zonas de Vuelo
-          </button>
-          <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsManagingSettings(true)}>
-            ⚙️ Ajustes del Calendario
-          </button>
-          <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsPilotsModalOpen(true)}>
-            👥 Lista de Pilotos
-          </button>
-        </div>
       </div>
 
       <CollisionWarnings flights={flights} zones={calendar.zones} />
@@ -325,34 +307,6 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
           initialDate={selectedDate ?? undefined}
           editingFlight={editingFlight ?? undefined}
           onClose={handleCloseModal}
-        />
-      )}
-
-      {isManagingZones && (
-        <ZoneManagerModal
-          calendar={calendar}
-          onClose={() => setIsManagingZones(false)}
-          onZonesChanged={() => fetchFlights()}
-        />
-      )}
-
-      {isManagingSettings && (
-        <GeneralSettingsModal 
-          calendar={calendar} 
-          onClose={() => setIsManagingSettings(false)} 
-          onUpdated={() => {
-            router.refresh(); // Soft refresh to update parent props
-          }} 
-        />
-      )}
-
-      {isPilotsModalOpen && (
-        <PilotsModal 
-          operators={operators}
-          onClose={() => setIsPilotsModalOpen(false)} 
-          onUpdated={() => {
-            router.refresh();
-          }} 
         />
       )}
     </div>

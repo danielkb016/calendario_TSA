@@ -4,6 +4,7 @@ import { getCalendars, getOperators, getTodayGlobalCoordinations, getExternalWeb
 import DashboardClient from '@/components/DashboardClient';
 import GlobalTodayBanner from '@/components/GlobalTodayBanner';
 import ExternalLinksHeader from '@/components/ExternalLinksHeader';
+import GlobalHeaderActions from '@/components/GlobalHeaderActions';
 import styles from './page.module.css';
 
 export default async function Home() {
@@ -23,7 +24,10 @@ export default async function Home() {
             </h1>
             <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
           </div>
-          <ExternalLinksHeader initialLinks={externalLinks} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <GlobalHeaderActions operators={operators} />
+            <ExternalLinksHeader initialLinks={externalLinks} />
+          </div>
         </div>
       </header>
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { addOperator, deleteOperator } from '@/app/actions';
-import styles from './GeneralSettingsModal.module.css'; // Reusing styles
+import styles from './CalendarSettingsModal.module.css'; // Reusing styles
 
 type Operator = {
   id: number;
