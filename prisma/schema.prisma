@@ -81,3 +81,11 @@ model Flight {
   zoneId         Int
   zone           Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 }
+
+model ExternalWebLink {
+  id        Int      @id @default(autoincrement())
+  title     String
+  url       String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+}

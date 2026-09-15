@@ -131,6 +131,31 @@ export async function getFlights(calendarId: number) {
   });
 }
 
+// -- External Web Links --
+
+export async function getExternalWebLinks() {
+  return await prisma.externalWebLink.findMany({
+    orderBy: { createdAt: 'asc' }
+  });
+}
+
+export async function addExternalWebLink(title: string, url: string, imageUrl?: string) {
+  const link = await prisma.externalWebLink.create({
+    data: {
+      title,
+      url,
+      imageUrl
+    }
+  });
+  revalidatePath('/');
+  return link;
+}
+
+export async function deleteExternalWebLink(id: number) {
+  await prisma.externalWebLink.delete({ where: { id } });
+  revalidatePath('/');
+}
+
 export async function getTodayGlobalCoordinations() {
   const today = new Date();
   // We use the start of the local day to uniquely identify "today" for the daily coordination
