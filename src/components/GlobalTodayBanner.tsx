@@ -169,10 +169,10 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                   )}
 
                   {coord.statuses && coord.statuses.length > 0 && (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', marginTop: '0.5rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>PERMISOS DIARIOS</span>
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', backgroundColor: '#f1f5f9', padding: '0.1rem 0.5rem', borderRadius: '4px' }}>
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px dashed #cbd5e1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700, letterSpacing: '0.05em' }}>PERMISOS DIARIOS</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid #e2e8f0' }}>
                           {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </span>
                         <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
