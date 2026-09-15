@@ -74,21 +74,21 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
     <div className={`${styles.banner} ${styles.yellowBanner}`} style={{ margin: '1rem', marginTop: 0 }}>
       <div className={styles.icon}>📢</div>
       <div className={styles.content}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h4 className={styles.title} style={{ marginBottom: '0.25rem' }}>Coordinaciones Operacionales Diarias (Global)</h4>
-            <p className={styles.description} style={{ margin: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem', gap: '0.75rem' }}>
+          <div style={{ textAlign: 'center' }}>
+            <h5 className={styles.title} style={{ marginBottom: '0.2rem', fontSize: '1rem' }}>Coordinaciones Operacionales Diarias (Global)</h5>
+            <p className={styles.description} style={{ margin: 0, fontSize: '0.8rem' }}>
               Resumen de todas las ubicaciones y sitios a los que hay que llamar para el día de hoy.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               onClick={() => setSelectedCalendarId('all')}
               style={{
-                padding: '0.5rem 1rem',
+                padding: '0.4rem 0.8rem',
                 borderRadius: '999px',
                 border: 'none',
-                fontSize: '0.85rem',
+                fontSize: '0.8rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 backgroundColor: selectedCalendarId === 'all' ? '#3b82f6' : '#e2e8f0',
@@ -103,10 +103,10 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                 key={c.calendar.id}
                 onClick={() => setSelectedCalendarId(c.calendar.id.toString())}
                 style={{
-                  padding: '0.5rem 1rem',
+                  padding: '0.4rem 0.8rem',
                   borderRadius: '999px',
                   border: 'none',
-                  fontSize: '0.85rem',
+                  fontSize: '0.8rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                   backgroundColor: selectedCalendarId === c.calendar.id.toString() ? '#3b82f6' : '#e2e8f0',

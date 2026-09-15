@@ -162,9 +162,8 @@ export async function getTodayGlobalCoordinations() {
   // We use the start of the local day to uniquely identify "today" for the daily coordination
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
 
-  // Get all calendars that require daily coordination and include their call targets
+  // Get calendars and include their call targets and permits
   const calendars = await prisma.calendar.findMany({
-    where: { requiresDailyCoordination: true },
     include: { 
       callTargets: true,
       globalPermits: true
@@ -197,11 +196,12 @@ export async function getTodayGlobalCoordinations() {
       });
       statuses.push(status);
     }
-    // Only push if there are targets to call for this calendar
-    if (statuses.length > 0) {
+    // Only push if there are targets to call for this calendar or if it has global permits
+    if ((cal.requiresDailyCoordination && statuses.length > 0) || cal.globalPermits.length > 0) {
       results.push({
         calendar: cal,
-        statuses: statuses
+        statuses: statuses,
+        globalPermits: cal.globalPermits
       });
     }
   }

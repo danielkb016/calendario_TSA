@@ -4,14 +4,12 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
 
 ## 🚀 Características Principales
 
-- **Gestión de Calendarios**: Creación, renombrado, y eliminación de calendarios independientes. Ajustes globales de caducidad de permisos.
+- **Gestión de Calendarios**: Creación, edición, y eliminación de calendarios independientes. Ajustes globales desde un único modal de configuración (Zonas, Permisos, Llamadas, etc.).
 - **Vista de Gantt Interactiva**:
   - Visualización en modo **Semanal** o **Mensual**.
   - Navegación temporal sencilla (Anterior, Hoy, Siguiente).
-  - Haz clic en cualquier celda para añadir una nueva operación en la fecha y zona correspondientes.
-  - Actualización automática en segundo plano cada 5 minutos para mantener siempre la información sincronizada sin recargar la página bruscamente.
-- **Gestor de Zonas de Vuelo**: Añade, edita y elimina zonas de vuelo personalizadas para cada calendario.
-- **Base de Operadores (Pilotos)**: Listado centralizado de pilotos/operadores que se pueden asignar a los vuelos y coordinaciones.
+  - Actualización automática en segundo plano cada 5 minutos para mantener siempre la información sincronizada.
+- **Base de Operadores (Pilotos)**: Listado global y centralizado de pilotos accesibles desde la cabecera principal en cualquier momento.
 - **Formulario de Operaciones (Vuelos)**:
   - Información detallada: operador, fechas y horas de inicio y fin, notas sobre la situación actual.
   - Selección de estado de coordinación: **Confirmado**, **Pendiente** o **Anulada**.
@@ -51,10 +49,11 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
 │   │   └── page.module.css    # Estilos específicos de la página de inicio
 │   ├── components/
 │   │   ├── DashboardClient.tsx      # Control principal interactivo de la interfaz
-│   │   ├── GanttView.tsx            # Renderizado de la cuadrícula Gantt y control de modales
+│   │   ├── GanttView.tsx            # Renderizado de la cuadrícula Gantt
 │   │   ├── FlightModal.tsx          # Formulario para añadir, editar o eliminar vuelos
 │   │   ├── GlobalTodayBanner.tsx    # Banner de coordinación operativa diaria y firmas
-│   │   ├── GeneralSettingsModal.tsx # Ajustes de caducidad y configuración de sitios a llamar
+│   │   ├── CalendarSettingsModal.tsx# Ajustes centralizados del calendario (Zonas, Permisos, Llamadas)
+│   │   ├── GlobalHeaderActions.tsx  # Cabecera global para acciones (ej. Gestión de pilotos)
 │   │   └── PilotsModal.tsx          # Gestor de base de datos de operadores/pilotos
 │   └── lib/
 │       └── db.ts              # Cliente singleton de Prisma
