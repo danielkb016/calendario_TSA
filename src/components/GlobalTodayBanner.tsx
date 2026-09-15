@@ -136,9 +136,12 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                   
                   {/* Global Permits Summary for this calendar */}
                   {coord.globalPermits && coord.globalPermits.length > 0 && (
-                    <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                      <strong style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.5rem' }}>PERMISOS GLOBALES:</strong>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>PERMISOS GLOBALES</span>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                         {coord.globalPermits.map(permit => {
                           const expDate = new Date(permit.expirationDate);
                           const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -155,9 +158,9 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                           }
                           
                           return (
-                            <div key={permit.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '0.25rem 0.5rem', backgroundColor: bgColor, color: color, borderRadius: '4px', fontWeight: 500 }}>
+                            <div key={permit.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.2rem 0.6rem', backgroundColor: bgColor, color: color, borderRadius: '999px', border: `1px solid ${color}40`, fontWeight: 600 }}>
                               <span>{permit.name}</span>
-                              <span>Caduca: {expDate.toLocaleDateString()}</span>
+                              <span style={{ opacity: 0.8, fontWeight: 400 }}>• {expDate.toLocaleDateString()}</span>
                             </div>
                           );
                         })}
@@ -165,7 +168,17 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                     </div>
                   )}
 
-                  {coord.statuses.map(status => (
+                  {coord.statuses && coord.statuses.length > 0 && (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', marginTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>PERMISOS DIARIOS</span>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', backgroundColor: '#f1f5f9', padding: '0.1rem 0.5rem', borderRadius: '4px' }}>
+                          {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </span>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                      </div>
+                      
+                      {coord.statuses.map(status => (
                     <div key={status.id} style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <div style={{ flex: 1 }}>
@@ -222,11 +235,12 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                       )}
                     </div>
                   ))}
+                    </div>
+                  )}
 
                   {coord.statuses.length === 0 && (
-                    <p style={{ color: '#64748b', fontSize: '0.8rem', fontStyle: 'italic', margin: 0 }}>No hay sitios configurados para llamar en este calendario.</p>
+                    <p style={{ color: '#64748b', fontSize: '0.8rem', fontStyle: 'italic', margin: 0, marginTop: '0.5rem' }}>No hay sitios configurados para llamar en este calendario.</p>
                   )}
-                  
                 </div>
               </div>
             );
