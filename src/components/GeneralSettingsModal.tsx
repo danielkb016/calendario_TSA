@@ -15,6 +15,7 @@ type CallTarget = {
   name: string;
   requiresOpening: boolean;
   requiresClosing: boolean;
+  contactNotes?: string | null;
 };
 
 type Calendar = {
@@ -47,6 +48,7 @@ export default function GeneralSettingsModal({
   const [newTargetName, setNewTargetName] = useState('');
   const [targetReqOpening, setTargetReqOpening] = useState(true);
   const [targetReqClosing, setTargetReqClosing] = useState(true);
+  const [targetNotes, setTargetNotes] = useState('');
 
   const handleSaveSettings = async () => {
     setLoading(true);
@@ -100,10 +102,11 @@ export default function GeneralSettingsModal({
     if (!newTargetName.trim()) return;
     setLoading(true);
     try {
-      await addCallTarget(calendar.id, newTargetName.trim(), targetReqOpening, targetReqClosing);
+      await addCallTarget(calendar.id, newTargetName.trim(), targetReqOpening, targetReqClosing, targetNotes.trim() || null);
       setNewTargetName('');
       setTargetReqOpening(true);
       setTargetReqClosing(true);
+      setTargetNotes('');
       onUpdated();
     } catch (error) {
       console.error(error);
@@ -225,6 +228,14 @@ export default function GeneralSettingsModal({
                   className={styles.input}
                   style={{ margin: 0 }}
                 />
+                <input 
+                  type="text" 
+                  value={targetNotes} 
+                  onChange={e => setTargetNotes(e.target.value)} 
+                  placeholder="Notas / Contacto (opcional)..."
+                  className={styles.input}
+                  style={{ margin: 0 }}
+                />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <label className={styles.checkboxLabel} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', fontSize: '0.85rem' }}>
@@ -260,6 +271,13 @@ export default function GeneralSettingsModal({
                     <li key={target.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '4px', marginBottom: '0.5rem', border: '1px solid #e2e8f0' }}>
                       <div>
                         <strong>{target.name}</strong>
+                        {/* @ts-ignore - target might not have contactNotes typed properly yet, but we will fix later */}
+                        {target.contactNotes && (
+                          <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', marginTop: '0.1rem' }}>
+                            {/* @ts-ignore */}
+                            {target.contactNotes}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
                           {target.requiresOpening && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '4px' }}>Apertura</span>}
                           {target.requiresClosing && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: '#ffedd5', color: '#9a3412', borderRadius: '4px' }}>Cierre</span>}

@@ -63,13 +63,14 @@ export async function deleteOperator(id: number) {
 
 // -- Call Targets --
 
-export async function addCallTarget(calendarId: number, name: string, requiresOpening: boolean = true, requiresClosing: boolean = true) {
+export async function addCallTarget(calendarId: number, name: string, requiresOpening: boolean = true, requiresClosing: boolean = true, contactNotes: string | null = null) {
   const target = await prisma.callTarget.create({
     data: {
       calendarId,
       name,
       requiresOpening,
-      requiresClosing
+      requiresClosing,
+      contactNotes
     }
   });
   revalidatePath('/');
@@ -164,7 +165,10 @@ export async function getTodayGlobalCoordinations() {
   // Get all calendars that require daily coordination and include their call targets
   const calendars = await prisma.calendar.findMany({
     where: { requiresDailyCoordination: true },
-    include: { callTargets: true }
+    include: { 
+      callTargets: true,
+      globalPermits: true
+    }
   });
 
   const results = [];

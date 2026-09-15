@@ -35,6 +35,7 @@ model CallTarget {
   name            String
   requiresOpening Boolean  @default(true)
   requiresClosing Boolean  @default(true)
+  contactNotes    String?
   calendarId      Int
   calendar        Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   dailyStatuses   DailyCallStatus[]
