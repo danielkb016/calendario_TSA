@@ -8,6 +8,7 @@ import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
 import ZoneManagerModal from './ZoneManagerModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
+import PilotsModal from './PilotsModal';
 import TodayStatusBanner from './TodayStatusBanner';
 import styles from './GanttView.module.css';
 
@@ -46,6 +47,7 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
   const router = useRouter();
   const [isManagingZones, setIsManagingZones] = useState(false);
   const [isManagingSettings, setIsManagingSettings] = useState(false);
+  const [isPilotsModalOpen, setIsPilotsModalOpen] = useState(false);
 
   const fetchFlights = async () => {
     setLoading(true);
@@ -235,6 +237,9 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
           <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsManagingSettings(true)}>
             ⚙️ Ajustes del Calendario
           </button>
+          <button className="btn" style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--light)' }} onClick={() => setIsPilotsModalOpen(true)}>
+            👥 Lista de Pilotos
+          </button>
         </div>
       </div>
 
@@ -337,6 +342,16 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
           onClose={() => setIsManagingSettings(false)} 
           onUpdated={() => {
             router.refresh(); // Soft refresh to update parent props
+          }} 
+        />
+      )}
+
+      {isPilotsModalOpen && (
+        <PilotsModal 
+          operators={operators}
+          onClose={() => setIsPilotsModalOpen(false)} 
+          onUpdated={() => {
+            router.refresh();
           }} 
         />
       )}
