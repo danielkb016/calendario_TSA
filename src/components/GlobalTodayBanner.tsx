@@ -81,19 +81,43 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
               Resumen de todas las ubicaciones y sitios a los que hay que llamar para el día de hoy.
             </p>
           </div>
-          
-          <select 
-            value={selectedCalendarId} 
-            onChange={(e) => setSelectedCalendarId(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.9rem', backgroundColor: '#fff', minWidth: '200px' }}
-          >
-            <option value="all">Todas las ubicaciones</option>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setSelectedCalendarId('all')}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '999px',
+                border: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                backgroundColor: selectedCalendarId === 'all' ? '#3b82f6' : '#e2e8f0',
+                color: selectedCalendarId === 'all' ? '#fff' : '#475569',
+                transition: 'all 0.2s'
+              }}
+            >
+              Todas las ubicaciones
+            </button>
             {coordinations.map(c => (
-              <option key={c.calendar.id} value={c.calendar.id.toString()}>
+              <button
+                key={c.calendar.id}
+                onClick={() => setSelectedCalendarId(c.calendar.id.toString())}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  backgroundColor: selectedCalendarId === c.calendar.id.toString() ? '#3b82f6' : '#e2e8f0',
+                  color: selectedCalendarId === c.calendar.id.toString() ? '#fff' : '#475569',
+                  transition: 'all 0.2s'
+                }}
+              >
                 {c.calendar.title}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         <div className={styles.grid} style={{ marginTop: '1rem' }}>
@@ -110,8 +134,8 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                 </div>
                 <div className={styles.cardBody} style={{ padding: '0.5rem 1rem' }}>
                   
-                  {/* Global Permits Summary for this calendar (if a specific calendar is selected) */}
-                  {selectedCalendarId !== 'all' && coord.globalPermits && coord.globalPermits.length > 0 && (
+                  {/* Global Permits Summary for this calendar */}
+                  {coord.globalPermits && coord.globalPermits.length > 0 && (
                     <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                       <strong style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.5rem' }}>PERMISOS GLOBALES:</strong>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -126,8 +150,8 @@ export default function GlobalTodayBanner({ coordinations, operators }: GlobalTo
                             color = '#dc2626'; // Red < 20 days
                             bgColor = '#fee2e2';
                           } else if (daysLeft <= 30) {
-                            color = '#ea580c'; // Orange <= 30 days
-                            bgColor = '#ffedd5';
+                            color = '#ca8a04'; // Yellow <= 30 days
+                            bgColor = '#fef08a';
                           }
                           
                           return (
