@@ -19,8 +19,8 @@ export default async function Home({ searchParams }: { searchParams: { date?: st
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div>
             <h1 className={styles.title}>
-              Coordinaciones TSA
-              <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.2</span>
+              COORDINACIONES DRON CENTER
+              <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.3</span>
             </h1>
             <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
           </div>

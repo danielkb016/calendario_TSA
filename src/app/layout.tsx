@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Coordinaciones TSA",
+  title: "COORDINACIONES DRON CENTER",
   description: "Gestión de Coordinaciones de Vuelo TSA",
 };
 
