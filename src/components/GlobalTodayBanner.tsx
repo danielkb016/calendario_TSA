@@ -230,12 +230,37 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                         <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
                       </div>
                       
-                      {coord.statuses.map(status => (
-                        <div key={status.id} style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                      {coord.statuses.map(status => {
+                        const cycles = status.cycles || [];
+                        const latestCycle = cycles.length > 0 ? cycles[cycles.length - 1] : null;
+                        const isCurrentlyOpen = latestCycle && latestCycle.opened && !latestCycle.closed;
+
+                        return (
+                        <div key={status.id} style={{ 
+                          backgroundColor: isCurrentlyOpen ? '#ecfdf5' : '#ffffff',
+                          border: '1px solid',
+                          borderColor: isCurrentlyOpen ? '#a7f3d0' : '#e2e8f0',
+                          borderLeftWidth: '5px',
+                          borderLeftColor: isCurrentlyOpen ? '#10b981' : '#cbd5e1',
+                          padding: '1rem', 
+                          borderRadius: '8px',
+                          marginBottom: '1rem',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <strong style={{ fontSize: '0.9rem' }}>{status.callTarget?.name}</strong>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                <strong style={{ fontSize: '1.1rem', color: isCurrentlyOpen ? '#065f46' : '#334155' }}>
+                                  {status.callTarget?.name}
+                                </strong>
+                                <span style={{
+                                  padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 'bold', letterSpacing: '0.05em',
+                                  backgroundColor: isCurrentlyOpen ? '#10b981' : '#f1f5f9',
+                                  color: isCurrentlyOpen ? 'white' : '#64748b',
+                                  boxShadow: isCurrentlyOpen ? '0 2px 4px rgba(16,185,129,0.3)' : 'none'
+                                }}>
+                                  {isCurrentlyOpen ? '🟢 ESTADO: ABIERTA' : '⚫ ESTADO: CERRADA'}
+                                </span>
                               </div>
                               
                               {/* Static Contact Notes Collapsible */}
@@ -358,7 +383,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                             </div>
                           )}
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
 
