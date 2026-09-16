@@ -16,18 +16,18 @@ export default async function Home({ searchParams }: { searchParams: { date?: st
   return (
     <main className={styles.main}>
       <header className={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div>
-            <h1 className={styles.title}>
-              COORDINACIONES DRON CENTER
-              <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.3</span>
-            </h1>
-            <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <GlobalHeaderActions operators={operators} />
-            <ExternalLinksHeader initialLinks={externalLinks} />
-          </div>
+        <div className={styles.headerLeft}>
+          <GlobalHeaderActions operators={operators} />
+        </div>
+        <div className={styles.headerCenter}>
+          <h1 className={styles.title}>
+            COORDINACIONES DRON CENTER
+            <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.3</span>
+          </h1>
+          <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
+        </div>
+        <div className={styles.headerRight}>
+          <ExternalLinksHeader initialLinks={externalLinks} />
         </div>
       </header>
 
