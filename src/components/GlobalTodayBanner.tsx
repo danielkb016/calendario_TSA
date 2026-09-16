@@ -236,20 +236,6 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <strong style={{ fontSize: '0.9rem' }}>{status.callTarget?.name}</strong>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
-                                  style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#3b82f6', fontSize: '1rem', cursor: 'pointer', padding: '0 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}
-                                  title="Añadir nuevo ciclo"
-                                >
-                                  +
-                                </button>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
-                                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
-                                  title="Editar nota diaria general"
-                                >
-                                  📝 Editar nota
-                                </button>
                               </div>
                               
                               {/* Static Contact Notes Collapsible */}
@@ -283,7 +269,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                   
                                   <div 
                                     onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status, cycleId: cycle.id }); }}
-                                    style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: isClosed ? 0.7 : 1 }}
+                                    style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: isClosed ? 0.7 : 1, flex: 1 }}
                                     title="Haz clic para gestionar este ciclo"
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -316,12 +302,54 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                       )}
                                     </div>
                                   </div>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status, cycleId: cycle.id }); }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.6 }}
+                                    title="Modificar / Eliminar ciclo y notas"
+                                  >
+                                    ✏️
+                                  </button>
                                 </div>
                               );
                             })}
-                            {(!status.cycles || status.cycles.length === 0) && (
-                              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>Sin ciclos registrados. Pulsa "+" para iniciar uno.</p>
-                            )}
+                            
+                            {(() => {
+                              const cycles = status.cycles || [];
+                              const lastCycle = cycles[cycles.length - 1];
+                              const reqClose = status.callTarget?.requiresClosing ?? true;
+                              const isAllCompleted = cycles.length === 0 || (reqClose ? lastCycle.closed : lastCycle.opened);
+                              
+                              return isAllCompleted ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px dashed #cbd5e1', opacity: 0.7 }}>
+                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold' }}>#{cycles.length + 1}</span>
+                                  
+                                  <div 
+                                    onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
+                                    style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', flex: 1 }}
+                                    title="Haz clic para iniciar nuevo ciclo o editar nota general"
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      <div style={{ 
+                                        width: '40px', height: '20px', borderRadius: '20px', 
+                                        backgroundColor: '#cbd5e1', 
+                                        position: 'relative' 
+                                      }}>
+                                        <div style={{
+                                          width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white',
+                                          position: 'absolute', top: '2px', left: '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                                        }} />
+                                      </div>
+                                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}>
+                                        CERRADA
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.4rem' }}>
+                                      <span>✨ Haz clic para abrir (Nuevo Ciclo) o editar notas</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : null;
+                            })()}
                           </div>
 
                           {status.notes && (
