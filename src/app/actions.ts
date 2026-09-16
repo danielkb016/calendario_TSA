@@ -82,6 +82,15 @@ export async function deleteCallTarget(id: number) {
   revalidatePath('/');
 }
 
+export async function updateCallTarget(id: number, data: { name?: string; requiresOpening?: boolean; requiresClosing?: boolean; contactNotes?: string | null }) {
+  const target = await prisma.callTarget.update({
+    where: { id },
+    data
+  });
+  revalidatePath('/');
+  return target;
+}
+
 // -- Global Permits --
 
 export async function addGlobalPermit(calendarId: number, name: string, expirationDate: Date) {

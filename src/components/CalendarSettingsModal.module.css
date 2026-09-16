@@ -8,9 +8,10 @@
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* Changed from center to avoid cut-off */
+  overflow-y: auto; /* Let the overlay scroll if needed */
   z-index: 1000;
-  padding: 1rem;
+  padding: 2rem 1rem;
 }
 
 .modal {
@@ -18,12 +19,13 @@
   border-radius: 12px;
   width: 100%;
   max-width: 800px;
-  max-height: 90vh;
+  /* Removed fixed max-height so it can be scrolled fully within the overlay if needed, or kept flexible */
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-bottom: 2rem;
 }
 
 @keyframes slideIn {

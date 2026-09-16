@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { 
   updateCalendar, 
   addZone, updateZone, deleteZone, 
-  addCallTarget, deleteCallTarget, 
+  addCallTarget, updateCallTarget, deleteCallTarget, 
   addGlobalPermit, deleteGlobalPermit 
 } from '@/app/actions';
 import styles from './CalendarSettingsModal.module.css';
@@ -69,6 +69,12 @@ export default function CalendarSettingsModal({
   const [targetReqOpening, setTargetReqOpening] = useState(true);
   const [targetReqClosing, setTargetReqClosing] = useState(true);
   const [targetNotes, setTargetNotes] = useState('');
+  
+  const [editingTargetId, setEditingTargetId] = useState<number | null>(null);
+  const [editingTargetName, setEditingTargetName] = useState('');
+  const [editingTargetReqOpening, setEditingTargetReqOpening] = useState(true);
+  const [editingTargetReqClosing, setEditingTargetReqClosing] = useState(true);
+  const [editingTargetNotes, setEditingTargetNotes] = useState('');
 
   // --- ACTIONS ---
 
@@ -196,6 +202,26 @@ export default function CalendarSettingsModal({
     } catch (error) {
       console.error(error);
       alert('Error al añadir el sitio');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveEditTarget = async (id: number) => {
+    if (!editingTargetName.trim()) return;
+    setLoading(true);
+    try {
+      await updateCallTarget(id, { 
+        name: editingTargetName.trim(),
+        requiresOpening: editingTargetReqOpening,
+        requiresClosing: editingTargetReqClosing,
+        contactNotes: editingTargetNotes.trim() || null
+      });
+      setEditingTargetId(null);
+      onUpdated();
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar el sitio de llamada');
     } finally {
       setLoading(false);
     }
@@ -401,19 +427,73 @@ export default function CalendarSettingsModal({
                       <ul className={styles.list}>
                         {calendar.callTargets.map(target => (
                           <li key={target.id} className={styles.listItem} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                              <strong>{target.name}</strong>
-                              {target.contactNotes && (
-                                <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', marginTop: '0.1rem' }}>
-                                  {target.contactNotes}
+                            {editingTargetId === target.id ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                                <input 
+                                  type="text" 
+                                  value={editingTargetName} 
+                                  onChange={e => setEditingTargetName(e.target.value)} 
+                                  className={styles.input}
+                                  placeholder="Nombre..."
+                                  style={{ margin: 0 }}
+                                />
+                                <input 
+                                  type="text" 
+                                  value={editingTargetNotes} 
+                                  onChange={e => setEditingTargetNotes(e.target.value)} 
+                                  className={styles.input}
+                                  placeholder="Notas de contacto..."
+                                  style={{ margin: 0 }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <label style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', fontSize: '0.85rem' }}>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={editingTargetReqOpening} 
+                                        onChange={e => setEditingTargetReqOpening(e.target.checked)} 
+                                      /> Req. Apertura
+                                    </label>
+                                    <label style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', fontSize: '0.85rem' }}>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={editingTargetReqClosing} 
+                                        onChange={e => setEditingTargetReqClosing(e.target.checked)} 
+                                      /> Req. Cierre
+                                    </label>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button onClick={() => handleSaveEditTarget(target.id)} disabled={loading} className={styles.successBtn}>✔️</button>
+                                    <button onClick={() => setEditingTargetId(null)} disabled={loading} className={styles.cancelBtn}>❌</button>
+                                  </div>
                                 </div>
-                              )}
-                              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                                {target.requiresOpening && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '4px' }}>Apertura</span>}
-                                {target.requiresClosing && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: '#ffedd5', color: '#9a3412', borderRadius: '4px' }}>Cierre</span>}
                               </div>
-                            </div>
-                            <button onClick={() => handleDeleteTarget(target.id)} disabled={loading} className={styles.iconBtn} title="Eliminar sitio">🗑️</button>
+                            ) : (
+                              <>
+                                <div style={{ flex: 1, paddingRight: '1rem' }}>
+                                  <strong>{target.name}</strong>
+                                  {target.contactNotes && (
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', marginTop: '0.1rem' }}>
+                                      {target.contactNotes}
+                                    </div>
+                                  )}
+                                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                    {target.requiresOpening && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '4px' }}>Apertura</span>}
+                                    {target.requiresClosing && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: '#ffedd5', color: '#9a3412', borderRadius: '4px' }}>Cierre</span>}
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <button onClick={() => {
+                                    setEditingTargetId(target.id);
+                                    setEditingTargetName(target.name);
+                                    setEditingTargetReqOpening(target.requiresOpening);
+                                    setEditingTargetReqClosing(target.requiresClosing);
+                                    setEditingTargetNotes(target.contactNotes || '');
+                                  }} className={styles.iconBtn} title="Editar sitio">✏️</button>
+                                  <button onClick={() => handleDeleteTarget(target.id)} disabled={loading} className={styles.iconBtn} title="Eliminar sitio">🗑️</button>
+                                </div>
+                              </>
+                            )}
                           </li>
                         ))}
                       </ul>
