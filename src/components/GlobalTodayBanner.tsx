@@ -197,42 +197,8 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                 </div>
                 <div className={styles.cardBody} style={{ padding: '0.5rem 1rem' }}>
                   
-                  {/* Global Permits Summary for this calendar */}
-                  {coord.globalPermits && coord.globalPermits.length > 0 && (
-                    <div style={{ marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>PERMISOS GLOBALES</span>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {coord.globalPermits.map(permit => {
-                          const expDate = new Date(permit.expirationDate);
-                          const daysLeft = Math.ceil((expDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24));
-                          
-                          let color = '#16a34a'; // Green > 30 days
-                          let bgColor = '#dcfce7';
-                          
-                          if (daysLeft < 0) {
-                            color = '#dc2626'; // Red < 0 days (caducado)
-                            bgColor = '#fee2e2';
-                          } else if (daysLeft <= 30) {
-                            color = '#ca8a04'; // Yellow <= 30 days
-                            bgColor = '#fef08a';
-                          }
-                          
-                          return (
-                            <div key={permit.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.2rem 0.6rem', backgroundColor: bgColor, color: color, borderRadius: '999px', border: `1px solid ${color}40`, fontWeight: 600 }}>
-                              <span>{permit.name}</span>
-                              <span style={{ opacity: 0.8, fontWeight: 400 }}>• {expDate.toLocaleDateString()}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
                   {coord.statuses && coord.statuses.length > 0 && (
-                    <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px dashed #cbd5e1' }}>
+                    <div style={{ marginBottom: '1.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                         <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700, letterSpacing: '0.05em' }}>PERMISOS DIARIOS</span>
                         <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
@@ -396,7 +362,41 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                   )}
 
                   {coord.statuses.length === 0 && (
-                    <p style={{ color: '#64748b', fontSize: '0.8rem', fontStyle: 'italic', margin: 0, marginTop: '0.5rem' }}>No hay sitios configurados para llamar en este calendario.</p>
+                    <p style={{ color: '#64748b', fontSize: '0.8rem', fontStyle: 'italic', margin: 0, marginBottom: '1.5rem' }}>No hay sitios configurados para llamar en este calendario.</p>
+                  )}
+                  
+                  {/* Global Permits Summary for this calendar */}
+                  {coord.globalPermits && coord.globalPermits.length > 0 && (
+                    <div style={{ paddingTop: '1rem', borderTop: '2px dashed #cbd5e1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>PERMISOS GLOBALES</span>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {coord.globalPermits.map(permit => {
+                          const expDate = new Date(permit.expirationDate);
+                          const daysLeft = Math.ceil((expDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24));
+                          
+                          let color = '#16a34a'; // Green > 30 days
+                          let bgColor = '#dcfce7';
+                          
+                          if (daysLeft < 0) {
+                            color = '#dc2626'; // Red < 0 days (caducado)
+                            bgColor = '#fee2e2';
+                          } else if (daysLeft <= 30) {
+                            color = '#ca8a04'; // Yellow <= 30 days
+                            bgColor = '#fef08a';
+                          }
+                          
+                          return (
+                            <div key={permit.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.2rem 0.6rem', backgroundColor: bgColor, color: color, borderRadius: '999px', border: `1px solid ${color}40`, fontWeight: 600 }}>
+                              <span>{permit.name}</span>
+                              <span style={{ opacity: 0.8, fontWeight: 400 }}>• {expDate.toLocaleDateString()}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
