@@ -227,129 +227,88 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                 <strong style={{ fontSize: '1.1rem', color: isCurrentlyOpen ? '#065f46' : '#334155' }}>
                                   {status.callTarget?.name}
                                 </strong>
-                                <span style={{
-                                  padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 'bold', letterSpacing: '0.05em',
-                                  backgroundColor: isCurrentlyOpen ? '#10b981' : '#f1f5f9',
-                                  color: isCurrentlyOpen ? 'white' : '#64748b',
-                                  boxShadow: isCurrentlyOpen ? '0 2px 4px rgba(16,185,129,0.3)' : 'none'
-                                }}>
-                                  {isCurrentlyOpen ? '🟢 ESTADO: ABIERTA' : '⚫ ESTADO: CERRADA'}
-                                </span>
+                                <div 
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    if (isCurrentlyOpen) {
+                                       setQuickActionStatus({ status, cycleId: latestCycle.id });
+                                    } else {
+                                       setQuickActionStatus({ status });
+                                    }
+                                  }}
+                                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', borderRadius: '999px', backgroundColor: isCurrentlyOpen ? '#10b981' : '#f1f5f9', boxShadow: isCurrentlyOpen ? '0 2px 4px rgba(16,185,129,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)', border: '1px solid', borderColor: isCurrentlyOpen ? '#059669' : '#cbd5e1' }}
+                                  title={isCurrentlyOpen ? 'Haz clic para CERRAR' : 'Haz clic para ABRIR'}
+                                >
+                                  {/* Custom Toggle Track */}
+                                  <div style={{ 
+                                    width: '36px', height: '18px', borderRadius: '18px', 
+                                    backgroundColor: isCurrentlyOpen ? '#34d399' : '#cbd5e1', 
+                                    position: 'relative', transition: 'background-color 0.2s' 
+                                  }}>
+                                    <div style={{
+                                      width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'white',
+                                      position: 'absolute', top: '2px', left: isCurrentlyOpen ? '20px' : '2px',
+                                      transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                                    }} />
+                                  </div>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: isCurrentlyOpen ? 'white' : '#64748b', letterSpacing: '0.05em' }}>
+                                    {isCurrentlyOpen ? 'ABIERTA' : 'CERRADA'}
+                                  </span>
+                                </div>
                               </div>
                               
-                              {/* Static Contact Notes Collapsible */}
-                              {status.callTarget?.contactNotes && (
-                                <div style={{ marginTop: '0.25rem' }}>
+                              {/* Opciones Adicionales */}
+                              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                {status.callTarget?.contactNotes && (
                                   <button 
                                     onClick={() => toggleNote(status.callTarget!.id)}
                                     style={{ background: 'none', border: 'none', padding: 0, color: '#3b82f6', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
                                   >
                                     {expandedNotes[status.callTarget.id] ? 'Ocultar notas de contacto' : 'Ver notas de contacto'}
                                   </button>
-                                  {expandedNotes[status.callTarget.id] && (
-                                    <div style={{ fontSize: '0.8rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>
-                                      {status.callTarget.contactNotes}
-                                    </div>
-                                  )}
+                                )}
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
+                                  style={{ background: 'none', border: 'none', padding: 0, color: '#64748b', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                                >
+                                  📝 Añadir/Editar Nota
+                                </button>
+                              </div>
+                              
+                              {status.callTarget?.contactNotes && expandedNotes[status.callTarget.id] && (
+                                <div style={{ fontSize: '0.8rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem', whiteSpace: 'pre-wrap' }}>
+                                  {status.callTarget.contactNotes}
                                 </div>
                               )}
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
-                            {status.cycles?.map((cycle, idx) => {
-                              const isOpened = cycle.opened && !cycle.closed;
-                              const isClosed = cycle.closed;
-                              const isPending = !cycle.opened;
-                              
-                              return (
-                                <div key={cycle.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold' }}>#{idx + 1}</span>
-                                  
-                                  <div 
-                                    onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status, cycleId: cycle.id }); }}
-                                    style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', opacity: isClosed ? 0.7 : 1, flex: 1 }}
-                                    title="Haz clic para gestionar este ciclo"
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      {/* Custom Toggle Track */}
-                                      <div style={{ 
-                                        width: '40px', height: '20px', borderRadius: '20px', 
-                                        backgroundColor: isOpened ? '#10b981' : '#cbd5e1', 
-                                        position: 'relative', transition: 'background-color 0.2s' 
-                                      }}>
-                                        {/* Toggle Thumb */}
-                                        <div style={{
-                                          width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white',
-                                          position: 'absolute', top: '2px', left: isOpened ? '22px' : '2px',
-                                          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                                        }} />
-                                      </div>
-                                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: isOpened ? '#10b981' : '#64748b' }}>
-                                        {isOpened ? 'ABIERTA' : 'CERRADA'}
-                                      </span>
-                                    </div>
-                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                                      {cycle.opened ? (
-                                        <span>🟢 Abierto por <strong>{cycle.openedBy}</strong> a las {new Date(cycle.openedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                      ) : null}
-                                      {cycle.closed ? (
-                                        <span>🔴 Cerrado por <strong>{cycle.closedBy}</strong> a las {new Date(cycle.closedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                      ) : null}
-                                      {!cycle.opened && !cycle.closed && (
-                                        <span>⏳ Pendiente de apertura</span>
-                                      )}
-                                    </div>
+                          {status.cycles && status.cycles.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '1rem' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Histórico de Aperturas y Cierres ({status.cycles.length})</span>
+                              {status.cycles.map((cycle, idx) => (
+                                <div key={cycle.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#475569' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                    {cycle.opened ? (
+                                      <span>🟢 Abierto por <strong>{cycle.openedBy}</strong> a las {new Date(cycle.openedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    ) : (
+                                      <span>⏳ <em>Pendiente de apertura</em></span>
+                                    )}
+                                    {cycle.closed ? (
+                                      <span>🔴 Cerrado por <strong>{cycle.closedBy}</strong> a las {new Date(cycle.closedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    ) : null}
                                   </div>
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status, cycleId: cycle.id }); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.6 }}
-                                    title="Modificar / Eliminar ciclo y notas"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', opacity: 0.5, padding: '0.2rem' }}
+                                    title="Modificar registro"
                                   >
                                     ✏️
                                   </button>
                                 </div>
-                              );
-                            })}
-                            
-                            {(() => {
-                              const cycles = status.cycles || [];
-                              const lastCycle = cycles[cycles.length - 1];
-                              const reqClose = status.callTarget?.requiresClosing ?? true;
-                              const isAllCompleted = cycles.length === 0 || (reqClose ? lastCycle.closed : lastCycle.opened);
-                              
-                              return isAllCompleted ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px dashed #cbd5e1', opacity: 0.7 }}>
-                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold' }}>#{cycles.length + 1}</span>
-                                  
-                                  <div 
-                                    onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
-                                    style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', flex: 1 }}
-                                    title="Haz clic para iniciar nuevo ciclo o editar nota general"
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <div style={{ 
-                                        width: '40px', height: '20px', borderRadius: '20px', 
-                                        backgroundColor: '#cbd5e1', 
-                                        position: 'relative' 
-                                      }}>
-                                        <div style={{
-                                          width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'white',
-                                          position: 'absolute', top: '2px', left: '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                                        }} />
-                                      </div>
-                                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}>
-                                        CERRADA
-                                      </span>
-                                    </div>
-                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.4rem' }}>
-                                      <span>✨ Haz clic para abrir (Nuevo Ciclo) o editar notas</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : null;
-                            })()}
-                          </div>
+                              ))}
+                            </div>
+                          )}
 
                           {status.notes && (
                             <div className={styles.timeInfo} style={{ backgroundColor: '#fffbeb', padding: '0.25rem 0.5rem', borderRadius: '4px', borderLeft: '2px solid #fbbf24', marginTop: '0.75rem', fontSize: '0.8rem' }}>
