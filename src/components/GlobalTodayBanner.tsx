@@ -304,13 +304,15 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                         {isOpened ? 'ABIERTA' : 'CERRADA'}
                                       </span>
                                     </div>
-                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.2rem' }}>
-                                      {isClosed ? (
-                                        `Cerrado por ${cycle.closedBy} a las ${new Date(cycle.closedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`
-                                      ) : isOpened ? (
-                                        `Abierto por ${cycle.openedBy} a las ${new Date(cycle.openedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`
-                                      ) : (
-                                        'Pendiente'
+                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                      {cycle.opened ? (
+                                        <span>🟢 Abierto por <strong>{cycle.openedBy}</strong> a las {new Date(cycle.openedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                      ) : null}
+                                      {cycle.closed ? (
+                                        <span>🔴 Cerrado por <strong>{cycle.closedBy}</strong> a las {new Date(cycle.closedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                      ) : null}
+                                      {!cycle.opened && !cycle.closed && (
+                                        <span>⏳ Pendiente de apertura</span>
                                       )}
                                     </div>
                                   </div>
