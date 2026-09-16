@@ -1,43 +1,46 @@
 'use client';
 
 import { useState } from 'react';
-import { updateDailyCallStatus } from '@/app/actions';
+import { updateDailyCallStatus, updateDailyCallCycle, createDailyCallCycle, deleteDailyCallCycle } from '@/app/actions';
 import styles from './OpCoordinationModal.module.css';
 
-type Operator = {
-  id: number;
-  name: string;
-};
+type Operator = { id: number; name: string; };
 
 type CallTarget = {
   id: number;
   name: string;
   requiresOpening?: boolean;
   requiresClosing?: boolean;
-  calendar?: { id: number; title: string };
 };
 
-type DailyCallStatus = {
+type DailyCallCycle = {
   id: number;
-  date: Date;
   opened: boolean;
   openedBy: string | null;
   openedAt: Date | null;
   closed: boolean;
   closedBy: string | null;
   closedAt: Date | null;
+};
+
+type DailyCallStatus = {
+  id: number;
+  date: Date;
   notes: string | null;
   callTargetId: number;
   callTarget?: CallTarget;
+  cycles?: DailyCallCycle[];
 };
 
 export default function OpCoordinationModal({
   status,
+  cycleId,
   operators,
   onClose,
   onUpdated
 }: {
   status: DailyCallStatus;
+  cycleId?: number;
   operators: Operator[];
   onClose: () => void;
   onUpdated: () => void;
@@ -47,36 +50,46 @@ export default function OpCoordinationModal({
   const [customUser, setCustomUser] = useState('');
   const [notes, setNotes] = useState(status.notes || '');
 
+  const existingCycle = cycleId ? status.cycles?.find(c => c.id === cycleId) : null;
+
   const handleAction = async (action: 'open' | 'close' | 'undo_open' | 'undo_close') => {
     if ((action === 'open' || action === 'close') && !selectedUser) return;
     setLoading(true);
     const user = selectedUser === 'Otro' ? customUser : selectedUser;
     
     try {
+      let targetCycleId = cycleId;
+
+      if (!targetCycleId && (action === 'open' || action === 'close')) {
+        // Create new cycle first
+        const newCycle = await createDailyCallCycle(status.id);
+        targetCycleId = newCycle.id;
+      }
+
+      if (!targetCycleId) return;
+
       if (action === 'open') {
-        await updateDailyCallStatus(status.id, {
+        await updateDailyCallCycle(targetCycleId, {
           opened: true,
           openedBy: user,
           openedAt: new Date(),
-          notes: notes
         });
       } else if (action === 'close') {
-        await updateDailyCallStatus(status.id, {
+        await updateDailyCallCycle(targetCycleId, {
           closed: true,
           closedBy: user,
           closedAt: new Date(),
-          notes: notes
         });
       } else if (action === 'undo_open') {
         if (!confirm('¿Seguro que quieres anular la apertura?')) { setLoading(false); return; }
-        await updateDailyCallStatus(status.id, {
+        await updateDailyCallCycle(targetCycleId, {
           opened: false,
           openedBy: null,
           openedAt: null
         });
       } else if (action === 'undo_close') {
         if (!confirm('¿Seguro que quieres anular el cierre?')) { setLoading(false); return; }
-        await updateDailyCallStatus(status.id, {
+        await updateDailyCallCycle(targetCycleId, {
           closed: false,
           closedBy: null,
           closedAt: null
@@ -95,11 +108,9 @@ export default function OpCoordinationModal({
   const handleSaveNotes = async () => {
     setLoading(true);
     try {
-      await updateDailyCallStatus(status.id, {
-        notes: notes
-      });
+      await updateDailyCallStatus(status.id, { notes });
       onUpdated();
-      onClose();
+      if (!cycleId) onClose(); // Only close if we are in the general modal
     } catch (error) {
       console.error(error);
       alert('Error al guardar las notas.');
@@ -108,51 +119,78 @@ export default function OpCoordinationModal({
     }
   };
 
+  const handleDeleteCycle = async () => {
+    if (!cycleId) return;
+    if (!confirm('¿Seguro que quieres eliminar este ciclo completo?')) return;
+    setLoading(true);
+    try {
+      await deleteDailyCallCycle(cycleId);
+      onUpdated();
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert('Error al eliminar el ciclo.');
+      setLoading(false);
+    }
+  }
+
+  const isCreatingNew = !cycleId;
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={`card ${styles.modal}`} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
-          <h3>Firma Operativa: {status.callTarget?.name}</h3>
+          <h3>{isCreatingNew ? `Firma Operativa: ${status.callTarget?.name}` : `Gestionar Ciclo: ${status.callTarget?.name}`}</h3>
           <button className={styles.closeBtn} onClick={onClose}>&times;</button>
         </div>
 
         <div className={styles.content}>
-          <div className={styles.statusSection}>
-            {(status.callTarget?.requiresOpening ?? true) && (
-              <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Apertura:</span>
-                {status.opened ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <span className={styles.statusDone}>
-                      ✅ Abierto por {status.openedBy} el {status.openedAt ? new Date(status.openedAt).toLocaleTimeString() : ''}
-                    </span>
-                    <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_open')} disabled={loading}>Anular</button>
-                  </div>
-                ) : (
-                  <span className={styles.statusPending}>❌ Pendiente de abrir</span>
-                )}
+          
+          {/* CYCLE EDITING SECTION */}
+          {(!isCreatingNew && existingCycle) && (
+            <div className={styles.statusSection}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0 }}>Estado del Ciclo</h4>
+                <button onClick={handleDeleteCycle} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}>Eliminar ciclo</button>
               </div>
-            )}
-            
-            {(status.callTarget?.requiresClosing ?? true) && (
-              <div className={styles.statusItem}>
-                <span className={styles.statusLabel}>Cierre:</span>
-                {status.closed ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <span className={styles.statusDone}>
-                      ✅ Cerrado por {status.closedBy} el {status.closedAt ? new Date(status.closedAt).toLocaleTimeString() : ''}
-                    </span>
-                    <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_close')} disabled={loading}>Anular</button>
-                  </div>
-                ) : (
-                  <span className={styles.statusPending}>❌ Pendiente de cerrar</span>
-                )}
-              </div>
-            )}
-          </div>
 
-          {((status.callTarget?.requiresOpening ?? true) && !status.opened || (status.callTarget?.requiresClosing ?? true) && !status.closed) && (
-            <div className={styles.actionForm}>
+              {(status.callTarget?.requiresOpening ?? true) && (
+                <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>Apertura:</span>
+                  {existingCycle.opened ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <span className={styles.statusDone}>
+                        ✅ Abierto por {existingCycle.openedBy} el {existingCycle.openedAt ? new Date(existingCycle.openedAt).toLocaleTimeString() : ''}
+                      </span>
+                      <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_open')} disabled={loading}>Anular</button>
+                    </div>
+                  ) : (
+                    <span className={styles.statusPending}>❌ Pendiente de abrir</span>
+                  )}
+                </div>
+              )}
+              
+              {(status.callTarget?.requiresClosing ?? true) && (
+                <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>Cierre:</span>
+                  {existingCycle.closed ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <span className={styles.statusDone}>
+                        ✅ Cerrado por {existingCycle.closedBy} el {existingCycle.closedAt ? new Date(existingCycle.closedAt).toLocaleTimeString() : ''}
+                      </span>
+                      <button className="btn" style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }} onClick={() => handleAction('undo_close')} disabled={loading}>Anular</button>
+                    </div>
+                  ) : (
+                    <span className={styles.statusPending}>❌ Pendiente de cerrar</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ACTION FORM (For new cycle or if current cycle needs action) */}
+          {(isCreatingNew || (existingCycle && ((status.callTarget?.requiresOpening ?? true) && !existingCycle.opened || (status.callTarget?.requiresClosing ?? true) && !existingCycle.closed))) && (
+            <div className={styles.actionForm} style={!isCreatingNew ? { marginTop: '1.5rem', borderTop: '1px solid #eee', paddingTop: '1rem' } : {}}>
               <label>Selecciona quién realiza la llamada a {status.callTarget?.name}:</label>
               <select 
                 value={selectedUser} 
@@ -178,7 +216,7 @@ export default function OpCoordinationModal({
               )}
 
               <div className={styles.buttons}>
-                {(status.callTarget?.requiresOpening ?? true) && !status.opened && (
+                {(status.callTarget?.requiresOpening ?? true) && (!existingCycle || !existingCycle.opened) && (
                   <button 
                     className={`${styles.btn} ${styles.btnOpen}`}
                     onClick={() => handleAction('open')}
@@ -187,7 +225,7 @@ export default function OpCoordinationModal({
                     Marcar como ABIERTO
                   </button>
                 )}
-                {(status.callTarget?.requiresClosing ?? true) && !status.closed && (!(status.callTarget?.requiresOpening ?? true) || status.opened) && (
+                {(status.callTarget?.requiresClosing ?? true) && (!existingCycle || !existingCycle.closed) && (!(status.callTarget?.requiresOpening ?? true) || (existingCycle && existingCycle.opened)) && (
                   <button 
                     className={`${styles.btn} ${styles.btnCloseAction}`}
                     onClick={() => handleAction('close')}
@@ -200,23 +238,26 @@ export default function OpCoordinationModal({
             </div>
           )}
 
-          <div className={styles.actionForm} style={{ marginTop: '1.5rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-            <label>Nota del día para {status.callTarget?.name} (opcional):</label>
-            <textarea 
-              placeholder="Ej: Nos indican que hoy el aeródromo cierra antes..."
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', minHeight: '60px', marginTop: '0.5rem' }}
-            />
-            <button 
-              className="btn" 
-              style={{ marginTop: '0.5rem', backgroundColor: '#e2e8f0', color: '#1e293b' }} 
-              onClick={handleSaveNotes}
-              disabled={loading}
-            >
-              Guardar Nota
-            </button>
-          </div>
+          {/* NOTES FORM (Always available) */}
+          {isCreatingNew && (
+            <div className={styles.actionForm} style={{ marginTop: '1.5rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+              <label>Nota del día general para {status.callTarget?.name} (opcional):</label>
+              <textarea 
+                placeholder="Ej: Nos indican que hoy el aeródromo cierra antes..."
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', minHeight: '60px', marginTop: '0.5rem' }}
+              />
+              <button 
+                className="btn" 
+                style={{ marginTop: '0.5rem', backgroundColor: '#e2e8f0', color: '#1e293b' }} 
+                onClick={handleSaveNotes}
+                disabled={loading || notes === (status.notes || '')}
+              >
+                Guardar Nota
+              </button>
+            </div>
+          )}
 
         </div>
       </div>

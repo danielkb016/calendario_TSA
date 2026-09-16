@@ -44,17 +44,24 @@ model CallTarget {
 model DailyCallStatus {
   id           Int      @id @default(autoincrement())
   date         DateTime
-  opened       Boolean  @default(false)
-  openedBy     String?
-  openedAt     DateTime?
-  closed       Boolean  @default(false)
-  closedBy     String?
-  closedAt     DateTime?
   notes        String?
   callTargetId Int
   callTarget   CallTarget @relation(fields: [callTargetId], references: [id], onDelete: Cascade)
+  cycles       DailyCallCycle[]
 
   @@unique([callTargetId, date])
+}
+
+model DailyCallCycle {
+  id                Int      @id @default(autoincrement())
+  opened            Boolean  @default(false)
+  openedBy          String?
+  openedAt          DateTime?
+  closed            Boolean  @default(false)
+  closedBy          String?
+  closedAt          DateTime?
+  dailyCallStatusId Int
+  dailyCallStatus   DailyCallStatus @relation(fields: [dailyCallStatusId], references: [id], onDelete: Cascade)
 }
 
 model Operator {

@@ -157,10 +157,10 @@ export async function deleteExternalWebLink(id: number) {
   revalidatePath('/');
 }
 
-export async function getTodayGlobalCoordinations() {
-  const today = new Date();
-  // We use the start of the local day to uniquely identify "today" for the daily coordination
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+export async function getGlobalCoordinationsForDate(dateIso?: string) {
+  const targetDate = dateIso ? new Date(dateIso) : new Date();
+  // We use the start of the local day to uniquely identify "the day" for the daily coordination
+  const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
 
   // Get calendars and include their call targets and permits
   const calendars = await prisma.calendar.findMany({
@@ -175,23 +175,24 @@ export async function getTodayGlobalCoordinations() {
   for (const cal of calendars) {
     const statuses = [];
     for (const target of cal.callTargets) {
-      // Upsert the daily status for this target and today's date
+      // Upsert the daily status for this target and the requested date
       const status = await prisma.dailyCallStatus.upsert({
         where: {
           callTargetId_date: {
             callTargetId: target.id,
-            date: startOfToday
+            date: startOfDay
           }
         },
         update: {},
         create: {
           callTargetId: target.id,
-          date: startOfToday
+          date: startOfDay
         },
         include: {
           callTarget: {
             include: { calendar: true }
-          }
+          },
+          cycles: true
         }
       });
       statuses.push(status);
@@ -209,18 +210,38 @@ export async function getTodayGlobalCoordinations() {
   return results;
 }
 
-export async function updateDailyCallStatus(id: number, data: Partial<{
+export async function updateDailyCallStatus(id: number, data: { notes: string | null }) {
+  const coord = await prisma.dailyCallStatus.update({ where: { id }, data });
+  revalidatePath('/');
+  return coord;
+}
+
+export async function createDailyCallCycle(statusId: number) {
+  const cycle = await prisma.dailyCallCycle.create({
+    data: {
+      dailyCallStatusId: statusId
+    }
+  });
+  revalidatePath('/');
+  return cycle;
+}
+
+export async function updateDailyCallCycle(id: number, data: Partial<{
   opened: boolean;
   openedBy: string | null;
   openedAt: Date | null;
   closed: boolean;
   closedBy: string | null;
   closedAt: Date | null;
-  notes: string | null;
 }>) {
-  const coord = await prisma.dailyCallStatus.update({ where: { id }, data });
+  const cycle = await prisma.dailyCallCycle.update({ where: { id }, data });
   revalidatePath('/');
-  return coord;
+  return cycle;
+}
+
+export async function deleteDailyCallCycle(id: number) {
+  await prisma.dailyCallCycle.delete({ where: { id } });
+  revalidatePath('/');
 }
 
 export async function createFlight(data: {

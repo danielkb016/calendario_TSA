@@ -49,11 +49,13 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
   );
   const [isCreating, setIsCreating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
   // Auto-refresh every 5 minutes (300,000 ms) to keep daily coordinations updated
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
+      setLastRefreshed(new Date());
     }, 300000);
     return () => clearInterval(interval);
   }, [router]);

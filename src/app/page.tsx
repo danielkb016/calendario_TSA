@@ -1,16 +1,16 @@
 export const dynamic = 'force-dynamic';
 
-import { getCalendars, getOperators, getTodayGlobalCoordinations, getExternalWebLinks } from './actions';
+import { getCalendars, getOperators, getGlobalCoordinationsForDate, getExternalWebLinks } from './actions';
 import DashboardClient from '@/components/DashboardClient';
 import GlobalTodayBanner from '@/components/GlobalTodayBanner';
 import ExternalLinksHeader from '@/components/ExternalLinksHeader';
 import GlobalHeaderActions from '@/components/GlobalHeaderActions';
 import styles from './page.module.css';
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: { date?: string } }) {
   const calendars = await getCalendars();
   const operators = await getOperators();
-  const globalCoordinations = await getTodayGlobalCoordinations();
+  const globalCoordinations = await getGlobalCoordinationsForDate(searchParams?.date);
   const externalLinks = await getExternalWebLinks();
 
   return (
@@ -31,7 +31,7 @@ export default async function Home() {
         </div>
       </header>
 
-      <GlobalTodayBanner coordinations={globalCoordinations} operators={operators} />
+      <GlobalTodayBanner coordinations={globalCoordinations} operators={operators} lastRefreshed={new Date()} currentDateIso={searchParams?.date} fullCalendars={calendars} />
       <DashboardClient initialCalendars={calendars} globalOperators={operators} />
     </main>
   );
