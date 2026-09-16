@@ -116,27 +116,10 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
               Resumen de todas las ubicaciones y sitios a los que hay que llamar para el día seleccionado.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button
-              onClick={() => setSelectedCalendarId('all')}
-              style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: '999px',
-                border: 'none',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                backgroundColor: selectedCalendarId === 'all' ? '#3b82f6' : '#e2e8f0',
-                color: selectedCalendarId === 'all' ? '#fff' : '#475569',
-                transition: 'all 0.2s'
-              }}
-            >
-              Todas las ubicaciones
-            </button>
-            {coordinations.map(c => (
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
-                key={c.calendar.id}
-                onClick={() => setSelectedCalendarId(c.calendar.id.toString())}
+                onClick={() => setSelectedCalendarId('all')}
                 style={{
                   padding: '0.4rem 0.8rem',
                   borderRadius: '999px',
@@ -144,14 +127,50 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  backgroundColor: selectedCalendarId === c.calendar.id.toString() ? '#3b82f6' : '#e2e8f0',
-                  color: selectedCalendarId === c.calendar.id.toString() ? '#fff' : '#475569',
+                  backgroundColor: selectedCalendarId === 'all' ? '#3b82f6' : '#e2e8f0',
+                  color: selectedCalendarId === 'all' ? '#fff' : '#475569',
                   transition: 'all 0.2s'
                 }}
               >
-                {c.calendar.title}
+                Todas las ubicaciones
               </button>
-            ))}
+              {coordinations.map(c => (
+                <button
+                  key={c.calendar.id}
+                  onClick={() => setSelectedCalendarId(c.calendar.id.toString())}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    backgroundColor: selectedCalendarId === c.calendar.id.toString() ? '#3b82f6' : '#e2e8f0',
+                    color: selectedCalendarId === c.calendar.id.toString() ? '#fff' : '#475569',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {c.calendar.title}
+                </button>
+              ))}
+            </div>
+
+            {/* Separador */}
+            <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1' }} className={styles.hideOnMobile}></div>
+
+            {/* Selector de Fecha Global */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f1f5f9', padding: '0.3rem 0.8rem', borderRadius: '999px', border: '1px solid #cbd5e1' }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>📅 Fecha:</span>
+              <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>
+                {selectedDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </span>
+              <input 
+                type="date" 
+                style={{ border: 'none', background: 'transparent', fontSize: '0.8rem', color: '#475569', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                value={currentDateIso || new Date().toISOString().split('T')[0]}
+                onChange={handleDateChange}
+              />
+            </div>
           </div>
         </div>
 
@@ -216,17 +235,6 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                     <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px dashed #cbd5e1' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                         <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700, letterSpacing: '0.05em' }}>PERMISOS DIARIOS</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '999px', border: '1px solid #e2e8f0' }}>
-                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                            {selectedDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-                          </span>
-                          <input 
-                            type="date" 
-                            style={{ border: 'none', background: 'transparent', fontSize: '0.75rem', color: '#475569', outline: 'none', cursor: 'pointer' }}
-                            value={currentDateIso || new Date().toISOString().split('T')[0]}
-                            onChange={handleDateChange}
-                          />
-                        </div>
                         <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
                       </div>
                       
