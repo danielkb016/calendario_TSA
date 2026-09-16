@@ -261,7 +261,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                               </div>
                               
                               {/* Opciones Adicionales */}
-                              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.2rem' }}>
                                 {status.callTarget?.contactNotes && (
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); toggleNote(status.callTarget!.id); }}
@@ -270,7 +270,8 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                       backgroundColor: expandedNotes[status.callTarget.id] ? '#e0f2fe' : '#f0f9ff', 
                                       color: '#0284c7', border: '1px solid #bae6fd', 
                                       padding: '0.4rem 0.75rem', borderRadius: '999px', 
-                                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' 
+                                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                      whiteSpace: 'nowrap'
                                     }}
                                   >
                                     <span>📞</span> {expandedNotes[status.callTarget.id] ? 'Ocultar Contacto' : 'Ver Contacto'}
@@ -282,7 +283,8 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                     display: 'flex', alignItems: 'center', gap: '0.3rem', 
                                     backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', 
                                     padding: '0.4rem 0.75rem', borderRadius: '999px', 
-                                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' 
+                                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                    whiteSpace: 'nowrap'
                                   }}
                                 >
                                   <span>📝</span> Añadir / Editar Nota
