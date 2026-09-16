@@ -225,9 +225,9 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                           boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div style={{ flex: 1 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                <strong style={{ fontSize: '1.1rem', color: isCurrentlyOpen ? '#065f46' : '#334155' }}>
+                                <strong style={{ fontSize: '1.1rem', color: isCurrentlyOpen ? '#065f46' : '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {status.callTarget?.name}
                                 </strong>
                                 <div 
@@ -239,7 +239,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                        setQuickActionStatus({ status });
                                     }
                                   }}
-                                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', borderRadius: '999px', backgroundColor: isCurrentlyOpen ? '#10b981' : '#f1f5f9', boxShadow: isCurrentlyOpen ? '0 2px 4px rgba(16,185,129,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)', border: '1px solid', borderColor: isCurrentlyOpen ? '#059669' : '#cbd5e1' }}
+                                  style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', borderRadius: '999px', backgroundColor: isCurrentlyOpen ? '#10b981' : '#f1f5f9', boxShadow: isCurrentlyOpen ? '0 2px 4px rgba(16,185,129,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)', border: '1px solid', borderColor: isCurrentlyOpen ? '#059669' : '#cbd5e1' }}
                                   title={isCurrentlyOpen ? 'Haz clic para CERRAR' : 'Haz clic para ABRIR'}
                                 >
                                   {/* Custom Toggle Track */}
@@ -274,7 +274,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span>📞</span> {expandedNotes[status.callTarget.id] ? 'Ocultar Contacto' : 'Ver Contacto'}
+                                    <span>📞</span> {expandedNotes[status.callTarget.id] ? 'Ocultar Contacto' : 'Contacto'}
                                   </button>
                                 )}
                                 <button 
@@ -287,7 +287,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                     whiteSpace: 'nowrap'
                                   }}
                                 >
-                                  <span>📝</span> Añadir / Editar Nota
+                                  <span>📝</span> Nota
                                 </button>
                               </div>
                               
