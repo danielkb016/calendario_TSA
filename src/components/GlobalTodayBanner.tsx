@@ -181,10 +181,13 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                 key={coord.calendar.id} 
                 className={styles.card}
               >
-                <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className={styles.zoneBadge}>
-                    📍 {coord.calendar.title}
-                  </span>
+                <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.4rem' }}>📍</span>
+                    <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+                      {coord.calendar.title}
+                    </h3>
+                  </div>
                   {fullCalendars && (
                     <button 
                       onClick={() => setEditingCalendarId(coord.calendar.id)}
@@ -258,20 +261,31 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                               </div>
                               
                               {/* Opciones Adicionales */}
-                              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                 {status.callTarget?.contactNotes && (
                                   <button 
-                                    onClick={() => toggleNote(status.callTarget!.id)}
-                                    style={{ background: 'none', border: 'none', padding: 0, color: '#3b82f6', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                                    onClick={(e) => { e.stopPropagation(); toggleNote(status.callTarget!.id); }}
+                                    style={{ 
+                                      display: 'flex', alignItems: 'center', gap: '0.3rem', 
+                                      backgroundColor: expandedNotes[status.callTarget.id] ? '#e0f2fe' : '#f0f9ff', 
+                                      color: '#0284c7', border: '1px solid #bae6fd', 
+                                      padding: '0.4rem 0.75rem', borderRadius: '999px', 
+                                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' 
+                                    }}
                                   >
-                                    {expandedNotes[status.callTarget.id] ? 'Ocultar notas de contacto' : 'Ver notas de contacto'}
+                                    <span>📞</span> {expandedNotes[status.callTarget.id] ? 'Ocultar Contacto' : 'Ver Contacto'}
                                   </button>
                                 )}
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
-                                  style={{ background: 'none', border: 'none', padding: 0, color: '#64748b', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                                  style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '0.3rem', 
+                                    backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', 
+                                    padding: '0.4rem 0.75rem', borderRadius: '999px', 
+                                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' 
+                                  }}
                                 >
-                                  📝 Añadir/Editar Nota
+                                  <span>📝</span> Añadir / Editar Nota
                                 </button>
                               </div>
                               
