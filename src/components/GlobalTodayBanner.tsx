@@ -92,12 +92,15 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     if (val) {
-      router.push(`/?date=${val}`);
+      window.location.href = `/?date=${val}`;
     } else {
-      router.push(`/`);
+      window.location.href = `/`;
     }
   };
 
+  const selectedDateStr = currentDateIso || new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isHistorical = selectedDateStr !== todayStr;
   const selectedDate = currentDateIso ? new Date(currentDateIso) : new Date();
 
   return (
@@ -132,7 +135,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                   transition: 'all 0.2s'
                 }}
               >
-                Todas las ubicaciones
+                Todas
               </button>
               {coordinations.map(c => (
                 <button
@@ -159,19 +162,24 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
             <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1' }} className={styles.hideOnMobile}></div>
 
             {/* Selector de Fecha Global */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f1f5f9', padding: '0.3rem 0.8rem', borderRadius: '999px', border: '1px solid #cbd5e1' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>📅 Fecha:</span>
-              <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: isHistorical ? '#fef2f2' : '#f1f5f9', padding: '0.3rem 0.8rem', borderRadius: '999px', border: '1px solid', borderColor: isHistorical ? '#fca5a5' : '#cbd5e1' }}>
+              <span style={{ fontSize: '0.8rem', color: isHistorical ? '#ef4444' : '#64748b', fontWeight: 'bold' }}>📅 Fecha:</span>
+              <span style={{ fontSize: '0.8rem', color: isHistorical ? '#dc2626' : '#475569', fontWeight: 500 }}>
                 {selectedDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
               </span>
               <input 
                 type="date" 
-                style={{ border: 'none', background: 'transparent', fontSize: '0.8rem', color: '#475569', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-                value={currentDateIso || new Date().toISOString().split('T')[0]}
+                style={{ border: 'none', background: 'transparent', fontSize: '0.8rem', color: isHistorical ? '#dc2626' : '#475569', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                value={currentDateIso || todayStr}
                 onChange={handleDateChange}
               />
             </div>
           </div>
+          {isHistorical && (
+            <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #f87171', display: 'inline-block', marginTop: '0.5rem' }}>
+              ⚠️ ATENCIÓN: Estás viendo el histórico de datos del día {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
+            </div>
+          )}
         </div>
 
         <div className={styles.grid} style={{ marginTop: '1rem' }}>
