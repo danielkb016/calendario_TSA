@@ -19,6 +19,8 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
   - Firmas de apertura/cierre rápidas con registro de hora, responsable y sistema de anulación.
   - Notas del día específicas para cada sitio de llamada.
 - **Sistema de Advertencia de Colisiones**: Detección en tiempo real de solapamientos horarios y espaciales entre dos vuelos activos en la misma zona de vuelo.
+- **Navegación Histórica Segura**: Sistema de visualización de datos pasados con recarga forzada (hard-reload) para garantizar precisión y un **banner de alerta visual (rojo)** para evitar confusiones operativas.
+- **Seguridad por PIN Global**: Sistema de acceso blindado por contraseña (PIN) utilizando el proxy/middleware de Next.js. Autenticación con cookies HTTP-only (duración de 1 año) que protege la plataforma contra accesos no autorizados.
 - **Diseño Ultra Responsivo**: Interfaz optimizada con CSS puro y media queries para una experiencia excelente en teléfonos móviles, tablets y ordenadores.
 
 ---
@@ -44,9 +46,14 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
 │   ├── app/
 │   │   ├── actions.ts         # Server Actions de Next.js para base de datos (Prisma CRUD)
 │   │   ├── globals.css        # Estilos globales y variables de diseño
+│   │   ├── proxy.ts           # Interceptor de seguridad global y validación de cookies
+│   │   ├── auth.ts            # Server Actions para validación del PIN de seguridad
 │   │   ├── layout.tsx         # Diseño estructural raíz
 │   │   ├── page.tsx           # Página principal del dashboard (Server Component)
 │   │   └── page.module.css    # Estilos específicos de la página de inicio
+│   ├── login/                 # Interfaz de acceso restringido
+│   │   ├── page.tsx
+│   │   └── login.module.css
 │   ├── components/
 │   │   ├── DashboardClient.tsx      # Control principal interactivo de la interfaz
 │   │   ├── GanttView.tsx            # Renderizado de la cuadrícula Gantt
@@ -74,10 +81,12 @@ Asegúrate de tener instalado:
 
 ### 2. Configurar Variables de Entorno
 
-Crea un archivo `.env` en la raíz del proyecto (basado en `.env` actual):
+Crea un archivo `.env` en la raíz del proyecto (basado en `.env.example`):
 
 ```env
 DATABASE_URL="file:../data/database.sqlite"
+TS_AUTHKEY="your-tailscale-auth-key-here"
+ACCESS_PIN="1234"
 ```
 
 ### 3. Instalar Dependencias y Preparar Base de Datos
