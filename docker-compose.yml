@@ -9,6 +9,7 @@ services:
       - DATABASE_URL=file:/app/data/database.sqlite
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
+      - ACCESS_PIN=${ACCESS_PIN}
 
   tailscale:
     image: tailscale/tailscale:latest
