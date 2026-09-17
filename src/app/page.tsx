@@ -7,7 +7,8 @@ import ExternalLinksHeader from '@/components/ExternalLinksHeader';
 import GlobalHeaderActions from '@/components/GlobalHeaderActions';
 import styles from './page.module.css';
 
-export default async function Home({ searchParams }: { searchParams: { date?: string } }) {
+export default async function Home(props: { searchParams: Promise<{ date?: string }> }) {
+  const searchParams = await props.searchParams;
   const calendars = await getCalendars();
   const operators = await getOperators();
   const globalCoordinations = await getGlobalCoordinationsForDate(searchParams?.date);
@@ -22,7 +23,7 @@ export default async function Home({ searchParams }: { searchParams: { date?: st
         <div className={styles.headerCenter}>
           <h1 className={styles.title}>
             COORDINACIONES DRON CENTER
-            <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.3</span>
+            <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.4</span>
           </h1>
           <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
         </div>
