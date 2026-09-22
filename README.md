@@ -20,6 +20,7 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
   - Notas del día específicas para cada sitio de llamada.
 - **Sistema de Advertencia de Colisiones**: Detección en tiempo real de solapamientos horarios y espaciales entre dos vuelos activos en la misma zona de vuelo.
 - **Navegación Histórica Segura**: Sistema de visualización de datos pasados con recarga forzada (hard-reload) para garantizar precisión y un **banner de alerta visual (rojo)** para evitar confusiones operativas.
+- **Bloqueo Global de Ubicaciones**: Permite deshabilitar temporalmente un calendario/ubicación entera, inhabilitando las firmas y operaciones, mostrándolo en gris opaco con un letrero llamativo del motivo. El bloqueo es permanente hasta que se deshabilita manualmente.
 - **Seguridad por PIN Global**: Sistema de acceso blindado por contraseña (PIN) utilizando el proxy/middleware de Next.js. Autenticación con cookies HTTP-only (duración de 1 año) que protege la plataforma contra accesos no autorizados.
 - **Diseño Ultra Responsivo**: Interfaz optimizada con CSS puro y media queries para una experiencia excelente en teléfonos móviles, tablets y ordenadores.
 
