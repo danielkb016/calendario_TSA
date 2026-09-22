@@ -140,6 +140,15 @@ export async function getFlights(calendarId: number) {
     orderBy: { startDate: 'asc' }
   });
 }
+// -- Call Targets --
+export async function updateCallTargetLock(id: number, isLocked: boolean, lockReason: string | null) {
+  const target = await prisma.callTarget.update({
+    where: { id },
+    data: { isLocked, lockReason }
+  });
+  revalidatePath('/');
+  return target;
+}
 
 // -- External Web Links --
 

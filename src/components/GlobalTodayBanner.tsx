@@ -2,6 +2,13 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { 
+  updateDailyCallStatus, 
+  createDailyCallCycle, 
+  updateDailyCallCycle, 
+  deleteDailyCallCycle,
+  updateCallTargetLock
+} from '../app/actions';
 import OpCoordinationModal from './OpCoordinationModal';
 import CalendarSettingsModal from './CalendarSettingsModal';
 import styles from './TodayStatusBanner.module.css';
@@ -19,6 +26,8 @@ type CallTarget = {
   requiresClosing?: boolean;
   contactNotes?: string | null;
   calendar?: { id: number; title: string };
+  isLocked?: boolean;
+  lockReason?: string | null;
 };
 
 type DailyCallCycle = {
@@ -95,6 +104,24 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
       window.location.href = `/?date=${val}`;
     } else {
       window.location.href = `/`;
+    }
+  };
+
+  const handleToggleLock = async (targetId: number, currentIsLocked: boolean) => {
+    let reason = null;
+    if (!currentIsLocked) {
+      reason = window.prompt("Introduce el motivo de bloqueo para esta ubicación (se mantendrá bloqueada los próximos días):");
+      if (reason === null) return; // Usuario canceló
+      if (!reason.trim()) {
+        alert("Debes introducir un motivo para bloquear la ubicación.");
+        return;
+      }
+    }
+    try {
+      await updateCallTargetLock(targetId, !currentIsLocked, reason);
+    } catch (e) {
+      console.error("Error al actualizar bloqueo:", e);
+      alert("Error al cambiar el estado de bloqueo.");
     }
   };
 
@@ -219,25 +246,38 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                         const cycles = status.cycles || [];
                         const latestCycle = cycles.length > 0 ? cycles[cycles.length - 1] : null;
                         const isCurrentlyOpen = latestCycle && latestCycle.opened && !latestCycle.closed;
+                        const isLocked = !!status.callTarget?.isLocked;
+                        const lockReason = status.callTarget?.lockReason;
 
                         return (
                         <div key={status.id} style={{ 
-                          backgroundColor: isCurrentlyOpen ? '#ecfdf5' : '#ffffff',
+                          backgroundColor: isLocked ? '#f8fafc' : (isCurrentlyOpen ? '#ecfdf5' : '#ffffff'),
                           border: '1px solid',
-                          borderColor: isCurrentlyOpen ? '#a7f3d0' : '#e2e8f0',
+                          borderColor: isLocked ? '#94a3b8' : (isCurrentlyOpen ? '#a7f3d0' : '#e2e8f0'),
                           borderLeftWidth: '5px',
-                          borderLeftColor: isCurrentlyOpen ? '#10b981' : '#cbd5e1',
+                          borderLeftColor: isLocked ? '#475569' : (isCurrentlyOpen ? '#10b981' : '#cbd5e1'),
                           padding: '1rem', 
                           borderRadius: '8px',
                           marginBottom: '1rem',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                          opacity: isLocked ? 0.9 : 1
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                <strong style={{ fontSize: '1.1rem', color: isCurrentlyOpen ? '#065f46' : '#334155' }}>
-                                  {status.callTarget?.name}
-                                </strong>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isLocked}
+                                    onChange={() => handleToggleLock(status.callTarget!.id, isLocked)}
+                                    title="Bloquear/Desbloquear Ubicación"
+                                    style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#475569' }}
+                                  />
+                                  <strong style={{ fontSize: '1.1rem', color: isLocked ? '#475569' : (isCurrentlyOpen ? '#065f46' : '#334155'), textDecoration: isLocked ? 'line-through' : 'none' }}>
+                                    {status.callTarget?.name}
+                                  </strong>
+                                </div>
+                                {!isLocked && (
                                 <div 
                                   onClick={(e) => { 
                                     e.stopPropagation(); 
@@ -266,38 +306,47 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                     {isCurrentlyOpen ? 'ABIERTA' : 'CERRADA'}
                                   </span>
                                 </div>
+                                )}
                               </div>
                               
+                              {isLocked && (
+                                <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#f1f5f9', borderLeft: '4px solid #64748b', borderRadius: '4px', fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>
+                                  🔒 UBICACIÓN BLOQUEADA: <span style={{ color: '#0f172a' }}>{lockReason}</span>
+                                </div>
+                              )}
+
                               {/* Opciones Adicionales */}
-                              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.2rem' }}>
-                                {status.callTarget?.contactNotes && (
+                              {!isLocked && (
+                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.2rem' }}>
+                                  {status.callTarget?.contactNotes && (
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); toggleNote(status.callTarget!.id); }}
+                                      style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '0.3rem', 
+                                        backgroundColor: expandedNotes[status.callTarget.id] ? '#e0f2fe' : '#f0f9ff', 
+                                        color: '#0284c7', border: '1px solid #bae6fd', 
+                                        padding: '0.4rem 0.75rem', borderRadius: '999px', 
+                                        fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      <span>📞</span> {expandedNotes[status.callTarget.id] ? 'Ocultar Contacto' : 'Contacto'}
+                                    </button>
+                                  )}
                                   <button 
-                                    onClick={(e) => { e.stopPropagation(); toggleNote(status.callTarget!.id); }}
+                                    onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
                                     style={{ 
                                       display: 'flex', alignItems: 'center', gap: '0.3rem', 
-                                      backgroundColor: expandedNotes[status.callTarget.id] ? '#e0f2fe' : '#f0f9ff', 
-                                      color: '#0284c7', border: '1px solid #bae6fd', 
+                                      backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', 
                                       padding: '0.4rem 0.75rem', borderRadius: '999px', 
                                       fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span>📞</span> {expandedNotes[status.callTarget.id] ? 'Ocultar Contacto' : 'Contacto'}
+                                    <span>📝</span> Nota
                                   </button>
-                                )}
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
-                                  style={{ 
-                                    display: 'flex', alignItems: 'center', gap: '0.3rem', 
-                                    backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', 
-                                    padding: '0.4rem 0.75rem', borderRadius: '999px', 
-                                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  <span>📝</span> Nota
-                                </button>
-                              </div>
+                                </div>
+                              )}
                               
                               {status.callTarget?.contactNotes && expandedNotes[status.callTarget.id] && (
                                 <div style={{ fontSize: '0.8rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem', whiteSpace: 'pre-wrap' }}>
