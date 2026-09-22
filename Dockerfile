@@ -52,4 +52,4 @@ EXPOSE 3000
 ENV PORT=3000
 
 # Push db schema before starting the app (useful for creating the file if it doesn't exist)
-CMD ["sh", "-c", "npx prisma db push && node server.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node server.js"]
