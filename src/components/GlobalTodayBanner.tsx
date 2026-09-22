@@ -7,7 +7,7 @@ import {
   createDailyCallCycle, 
   updateDailyCallCycle, 
   deleteDailyCallCycle,
-  updateCallTargetLock
+  updateCalendarLock
 } from '../app/actions';
 import OpCoordinationModal from './OpCoordinationModal';
 import CalendarSettingsModal from './CalendarSettingsModal';
@@ -26,8 +26,6 @@ type CallTarget = {
   requiresClosing?: boolean;
   contactNotes?: string | null;
   calendar?: { id: number; title: string };
-  isLocked?: boolean;
-  lockReason?: string | null;
 };
 
 type DailyCallCycle = {
@@ -51,7 +49,7 @@ type DailyCallStatus = {
 };
 
 type GlobalCoordination = {
-  calendar: { id: number; title: string };
+  calendar: { id: number; title: string; isLocked?: boolean; lockReason?: string | null };
   statuses: DailyCallStatus[];
   globalPermits?: GlobalPermit[];
 };
@@ -107,7 +105,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
     }
   };
 
-  const handleToggleLock = async (targetId: number, currentIsLocked: boolean) => {
+  const handleToggleLock = async (calendarId: number, currentIsLocked: boolean) => {
     let reason = null;
     if (!currentIsLocked) {
       reason = window.prompt("Introduce el motivo de bloqueo para esta ubicación (se mantendrá bloqueada los próximos días):");
@@ -118,7 +116,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
       }
     }
     try {
-      await updateCallTargetLock(targetId, !currentIsLocked, reason);
+      await updateCalendarLock(calendarId, !currentIsLocked, reason);
     } catch (e) {
       console.error("Error al actualizar bloqueo:", e);
       alert("Error al cambiar el estado de bloqueo.");
@@ -211,29 +209,56 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
 
         <div className={styles.grid} style={{ marginTop: '1rem' }}>
           {filteredCoordinations.map(coord => {
+            const isLocked = !!coord.calendar.isLocked;
+            const lockReason = coord.calendar.lockReason;
+
             return (
               <div 
                 key={coord.calendar.id} 
                 className={styles.card}
+                style={{
+                  backgroundColor: isLocked ? '#f8fafc' : '#ffffff',
+                  borderColor: isLocked ? '#94a3b8' : '#e2e8f0',
+                  opacity: isLocked ? 0.9 : 1
+                }}
               >
-                <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.4rem' }}>📍</span>
-                    <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-                      {coord.calendar.title}
-                    </h3>
+                <div className={styles.cardHeader} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '1.4rem' }}>📍</span>
+                      <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: isLocked ? '#64748b' : '#0f172a', letterSpacing: '-0.02em', textTransform: 'uppercase', textDecoration: isLocked ? 'line-through' : 'none' }}>
+                        {coord.calendar.title}
+                      </h3>
+                    </div>
+                    {fullCalendars && (
+                      <button 
+                        onClick={() => setEditingCalendarId(coord.calendar.id)}
+                        style={{ background: 'none', border: 'none', fontSize: '0.8rem', cursor: 'pointer', color: '#64748b' }}
+                        title="Editar Permisos y Configuración"
+                      >
+                        ⚙️ Editar
+                      </button>
+                    )}
                   </div>
-                  {fullCalendars && (
-                    <button 
-                      onClick={() => setEditingCalendarId(coord.calendar.id)}
-                      style={{ background: 'none', border: 'none', fontSize: '0.8rem', cursor: 'pointer', color: '#64748b' }}
-                      title="Editar Permisos y Configuración"
-                    >
-                      ⚙️ Editar
-                    </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                    <input 
+                      type="checkbox" 
+                      id={`lock-${coord.calendar.id}`}
+                      checked={isLocked}
+                      onChange={() => handleToggleLock(coord.calendar.id, isLocked)}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#475569' }}
+                    />
+                    <label htmlFor={`lock-${coord.calendar.id}`} style={{ fontSize: '0.85rem', color: isLocked ? '#334155' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>
+                      BLOQUEAR UBICACIÓN
+                    </label>
+                  </div>
+                  {isLocked && (
+                    <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#f1f5f9', borderLeft: '4px solid #64748b', borderRadius: '4px', fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>
+                      🔒 UBICACIÓN BLOQUEADA: <span style={{ color: '#0f172a' }}>{lockReason}</span>
+                    </div>
                   )}
                 </div>
-                <div className={styles.cardBody} style={{ padding: '0.5rem 1rem' }}>
+                <div className={styles.cardBody} style={{ padding: '0.5rem 1rem', pointerEvents: isLocked ? 'none' : 'auto', filter: isLocked ? 'grayscale(100%) opacity(0.7)' : 'none' }}>
                   
                   {coord.statuses && coord.statuses.length > 0 && (
                     <div style={{ marginBottom: '1.5rem' }}>
@@ -246,38 +271,25 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                         const cycles = status.cycles || [];
                         const latestCycle = cycles.length > 0 ? cycles[cycles.length - 1] : null;
                         const isCurrentlyOpen = latestCycle && latestCycle.opened && !latestCycle.closed;
-                        const isLocked = !!status.callTarget?.isLocked;
-                        const lockReason = status.callTarget?.lockReason;
 
                         return (
                         <div key={status.id} style={{ 
-                          backgroundColor: isLocked ? '#f8fafc' : (isCurrentlyOpen ? '#ecfdf5' : '#ffffff'),
+                          backgroundColor: isCurrentlyOpen ? '#ecfdf5' : '#ffffff',
                           border: '1px solid',
-                          borderColor: isLocked ? '#94a3b8' : (isCurrentlyOpen ? '#a7f3d0' : '#e2e8f0'),
+                          borderColor: isCurrentlyOpen ? '#a7f3d0' : '#e2e8f0',
                           borderLeftWidth: '5px',
-                          borderLeftColor: isLocked ? '#475569' : (isCurrentlyOpen ? '#10b981' : '#cbd5e1'),
+                          borderLeftColor: isCurrentlyOpen ? '#10b981' : '#cbd5e1',
                           padding: '1rem', 
                           borderRadius: '8px',
                           marginBottom: '1rem',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          opacity: isLocked ? 0.9 : 1
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <input 
-                                    type="checkbox" 
-                                    checked={isLocked}
-                                    onChange={() => handleToggleLock(status.callTarget!.id, isLocked)}
-                                    title="Bloquear/Desbloquear Ubicación"
-                                    style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#475569' }}
-                                  />
-                                  <strong style={{ fontSize: '1.1rem', color: isLocked ? '#475569' : (isCurrentlyOpen ? '#065f46' : '#334155'), textDecoration: isLocked ? 'line-through' : 'none' }}>
-                                    {status.callTarget?.name}
-                                  </strong>
-                                </div>
-                                {!isLocked && (
+                                <strong style={{ fontSize: '1.1rem', color: isCurrentlyOpen ? '#065f46' : '#334155' }}>
+                                  {status.callTarget?.name}
+                                </strong>
                                 <div 
                                   onClick={(e) => { 
                                     e.stopPropagation(); 
@@ -306,18 +318,10 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                     {isCurrentlyOpen ? 'ABIERTA' : 'CERRADA'}
                                   </span>
                                 </div>
-                                )}
                               </div>
                               
-                              {isLocked && (
-                                <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#f1f5f9', borderLeft: '4px solid #64748b', borderRadius: '4px', fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>
-                                  🔒 UBICACIÓN BLOQUEADA: <span style={{ color: '#0f172a' }}>{lockReason}</span>
-                                </div>
-                              )}
-
                               {/* Opciones Adicionales */}
-                              {!isLocked && (
-                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.2rem' }}>
+                              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.2rem' }}>
                                   {status.callTarget?.contactNotes && (
                                     <button 
                                       onClick={(e) => { e.stopPropagation(); toggleNote(status.callTarget!.id); }}
@@ -346,7 +350,6 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                                     <span>📝</span> Nota
                                   </button>
                                 </div>
-                              )}
                               
                               {status.callTarget?.contactNotes && expandedNotes[status.callTarget.id] && (
                                 <div style={{ fontSize: '0.8rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem', whiteSpace: 'pre-wrap' }}>

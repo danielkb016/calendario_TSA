@@ -16,6 +16,8 @@ model Calendar {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   requiresDailyCoordination Boolean @default(false)
+  isLocked  Boolean  @default(false)
+  lockReason String?
   zones               Zone[]
   flights             Flight[]
   callTargets         CallTarget[]
@@ -36,8 +38,6 @@ model CallTarget {
   requiresOpening Boolean  @default(true)
   requiresClosing Boolean  @default(true)
   contactNotes    String?
-  isLocked        Boolean  @default(false)
-  lockReason      String?
   calendarId      Int
   calendar        Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   dailyStatuses   DailyCallStatus[]

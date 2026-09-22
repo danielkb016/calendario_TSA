@@ -141,13 +141,13 @@ export async function getFlights(calendarId: number) {
   });
 }
 // -- Call Targets --
-export async function updateCallTargetLock(id: number, isLocked: boolean, lockReason: string | null) {
-  const target = await prisma.callTarget.update({
+export async function updateCalendarLock(id: number, isLocked: boolean, lockReason: string | null) {
+  const cal = await prisma.calendar.update({
     where: { id },
     data: { isLocked, lockReason }
   });
   revalidatePath('/');
-  return target;
+  return cal;
 }
 
 // -- External Web Links --
