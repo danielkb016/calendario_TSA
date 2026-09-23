@@ -24,7 +24,7 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
 - **Seguridad por PIN Global**: Sistema de acceso blindado por contraseña (PIN) utilizando el proxy/middleware de Next.js. Autenticación con cookies HTTP-only (duración de 1 año) que protege la plataforma contra accesos no autorizados.
 - **Diseño Ultra Responsivo**: Interfaz optimizada con CSS puro y media queries para una experiencia excelente en teléfonos móviles, tablets y ordenadores.
 - **Estética Glassmorphism**: Nueva interfaz principal con un aspecto premium, elegante, semitransparente y oscuro, para contrastar de manera profesional la coordinación diaria de los espacios.
-- **Integración Meteorológica en Tiempo Real**: Autocompletado geográfico inteligente (vía *Nominatim OpenStreetMap*) al crear ubicaciones, con asociación de Latitud y Longitud, consultando a la API gratuita de *Open-Meteo* para visualizar clima, viento y temperatura actual.
+- **Integración Meteorológica y Alertas en Tiempo Real**: Autocompletado geográfico inteligente (vía *Nominatim OpenStreetMap*) al crear ubicaciones y sincronización del clima con el sistema automático de refresco de la web. Consulta la API gratuita de *Open-Meteo* para visualizar clima, viento, temperatura y **% de probabilidad de lluvia**, incorporando un sistema dinámico de alertas visuales en los paneles (bordes parpadeantes amarillos y rojos según la intensidad del viento o presencia de precipitaciones/tormentas).
 
 ---
 
