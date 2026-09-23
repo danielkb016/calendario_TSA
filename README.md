@@ -23,6 +23,8 @@ Este es un sistema web interactivo diseñado para la gestión, visualización y 
 - **Bloqueo Global de Ubicaciones**: Permite deshabilitar temporalmente un calendario/ubicación entera, inhabilitando las firmas y operaciones, mostrándolo en gris opaco con un letrero llamativo del motivo. El bloqueo es permanente hasta que se deshabilita manualmente.
 - **Seguridad por PIN Global**: Sistema de acceso blindado por contraseña (PIN) utilizando el proxy/middleware de Next.js. Autenticación con cookies HTTP-only (duración de 1 año) que protege la plataforma contra accesos no autorizados.
 - **Diseño Ultra Responsivo**: Interfaz optimizada con CSS puro y media queries para una experiencia excelente en teléfonos móviles, tablets y ordenadores.
+- **Estética Glassmorphism**: Nueva interfaz principal con un aspecto premium, elegante, semitransparente y oscuro, para contrastar de manera profesional la coordinación diaria de los espacios.
+- **Integración Meteorológica en Tiempo Real**: Autocompletado geográfico inteligente (vía *Nominatim OpenStreetMap*) al crear ubicaciones, con asociación de Latitud y Longitud, consultando a la API gratuita de *Open-Meteo* para visualizar clima, viento y temperatura actual.
 
 ---
 
