@@ -18,6 +18,8 @@ model Calendar {
   requiresDailyCoordination Boolean @default(false)
   isLocked  Boolean  @default(false)
   lockReason String?
+  lat       Float?
+  lng       Float?
   zones               Zone[]
   flights             Flight[]
   callTargets         CallTarget[]

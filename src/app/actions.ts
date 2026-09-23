@@ -34,7 +34,7 @@ export async function deleteCalendar(id: number) {
   revalidatePath('/');
 }
 
-export async function updateCalendar(id: number, data: Partial<{ title: string; requiresDailyCoordination: boolean }>) {
+export async function updateCalendar(id: number, data: Partial<{ title: string; requiresDailyCoordination: boolean; lat: number | null; lng: number | null }>) {
   const cal = await prisma.calendar.update({ where: { id }, data });
   revalidatePath('/');
   return cal;
@@ -215,8 +215,8 @@ export async function getGlobalCoordinationsForDate(dateIso?: string) {
       });
       statuses.push(status);
     }
-    // Only push if there are targets to call for this calendar or if it has global permits
-    if ((cal.requiresDailyCoordination && statuses.length > 0) || cal.globalPermits.length > 0) {
+    // Include if it requires daily coordination or if it has global permits
+    if (cal.requiresDailyCoordination || cal.globalPermits.length > 0) {
       results.push({
         calendar: cal,
         statuses: statuses,

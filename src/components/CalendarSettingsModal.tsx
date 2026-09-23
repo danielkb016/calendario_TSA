@@ -35,6 +35,8 @@ type Calendar = {
   zones: Zone[];
   callTargets?: CallTarget[];
   globalPermits?: GlobalPermit[];
+  lat?: number | null;
+  lng?: number | null;
 };
 
 type TabType = 'general' | 'zones' | 'permits' | 'calls';
@@ -53,6 +55,8 @@ export default function CalendarSettingsModal({
   
   // -- General Tab State --
   const [calendarTitle, setCalendarTitle] = useState(calendar.title);
+  const [calendarLat, setCalendarLat] = useState(calendar.lat !== null && calendar.lat !== undefined ? String(calendar.lat) : '');
+  const [calendarLng, setCalendarLng] = useState(calendar.lng !== null && calendar.lng !== undefined ? String(calendar.lng) : '');
   
   // -- Zones Tab State --
   const [newZoneName, setNewZoneName] = useState('');
@@ -76,6 +80,34 @@ export default function CalendarSettingsModal({
   const [editingTargetReqClosing, setEditingTargetReqClosing] = useState(true);
   const [editingTargetNotes, setEditingTargetNotes] = useState('');
 
+  // -- Location Search State --
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{lat: string, lon: string, display_name: string}[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const searchLocation = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5`);
+      const data = await res.json();
+      setSearchResults(data);
+    } catch (err) {
+      console.error(err);
+      alert('Error buscando ubicación');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectLocation = (lat: string, lon: string) => {
+    setCalendarLat(lat);
+    setCalendarLng(lon);
+    setSearchResults([]);
+    setSearchQuery('');
+  };
+
   // --- ACTIONS ---
 
   // General Actions
@@ -83,12 +115,18 @@ export default function CalendarSettingsModal({
     if (!calendarTitle.trim()) return;
     setLoading(true);
     try {
-      await updateCalendar(calendar.id, { title: calendarTitle.trim() });
+      const latVal = calendarLat.trim() ? parseFloat(calendarLat) : null;
+      const lngVal = calendarLng.trim() ? parseFloat(calendarLng) : null;
+      await updateCalendar(calendar.id, { 
+        title: calendarTitle.trim(),
+        lat: latVal,
+        lng: lngVal
+      });
       onUpdated();
-      alert('Nombre actualizado correctamente.');
+      alert('Ajustes generales actualizados correctamente.');
     } catch (error) {
       console.error(error);
-      alert('Error al actualizar el nombre del calendario');
+      alert('Error al actualizar los ajustes generales');
     } finally {
       setLoading(false);
     }
@@ -283,20 +321,77 @@ export default function CalendarSettingsModal({
             {activeTab === 'general' && (
               <div className={styles.section}>
                 <h3>Nombre del Calendario</h3>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '1.5rem' }}>
                   <input 
                     type="text"
                     value={calendarTitle}
                     onChange={(e) => setCalendarTitle(e.target.value)}
                     className={styles.input}
                     placeholder="Ej. Octubre 2026..."
+                    style={{ flex: 1 }}
                   />
+                </div>
+
+                <h3>Ubicación Geográfica (Clima)</h3>
+                <p className={styles.helpText}>Busca una ciudad o lugar para autocompletar las coordenadas. También puedes editarlas manualmente.</p>
+                
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Buscar ciudad (ej. Madrid, España)..."
+                    className={styles.input}
+                    style={{ flex: 1, margin: 0 }}
+                    onKeyDown={e => { if(e.key === 'Enter') searchLocation(); }}
+                  />
+                  <button className={styles.primaryBtn} onClick={() => searchLocation()} disabled={isSearching || !searchQuery.trim()}>
+                    {isSearching ? 'Buscando...' : '🔍 Buscar'}
+                  </button>
+                </div>
+
+                {searchResults.length > 0 && (
+                  <ul className={styles.list} style={{ marginTop: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
+                    {searchResults.map((r, i) => (
+                      <li key={i} className={styles.listItem} style={{ cursor: 'pointer', padding: '0.5rem 1rem', borderBottom: i < searchResults.length - 1 ? '1px solid #e2e8f0' : 'none', border: 'none' }} onClick={() => selectLocation(r.lat, r.lon)}>
+                        <span style={{ fontSize: '0.85rem', color: '#0f172a' }}>{r.display_name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', opacity: 0.8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Latitud</label>
+                    <input 
+                      type="number"
+                      step="any"
+                      value={calendarLat}
+                      onChange={(e) => setCalendarLat(e.target.value)}
+                      className={styles.input}
+                      placeholder="Ej. 29.37"
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Longitud</label>
+                    <input 
+                      type="number"
+                      step="any"
+                      value={calendarLng}
+                      onChange={(e) => setCalendarLng(e.target.value)}
+                      className={styles.input}
+                      placeholder="Ej. -39.3"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
                   <button 
                     className={styles.primaryBtn} 
                     onClick={handleSaveGeneral}
-                    disabled={loading || !calendarTitle.trim() || calendarTitle === calendar.title}
+                    disabled={loading || !calendarTitle.trim()}
                   >
-                    Guardar Nombre
+                    Guardar Cambios Generales
                   </button>
                 </div>
               </div>
@@ -327,7 +422,7 @@ export default function CalendarSettingsModal({
                           </div>
                         ) : (
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                            <strong style={{ fontSize: '1.1rem' }}>{zone.name}</strong>
+                            <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>{zone.name}</strong>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <button onClick={() => { setEditingZoneId(zone.id); setEditingZoneName(zone.name); }} className={styles.iconBtn}>✏️</button>
                               <button onClick={() => handleDeleteZone(zone.id, zone.name)} className={styles.iconBtn}>🗑️</button>
@@ -365,7 +460,7 @@ export default function CalendarSettingsModal({
                     {calendar.globalPermits.map(permit => (
                       <li key={permit.id} className={styles.listItem} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <strong>{permit.name}</strong>
+                          <strong style={{ color: '#0f172a' }}>{permit.name}</strong>
                           <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '0.5rem' }}>
                             Caduca el {new Date(permit.expirationDate).toLocaleDateString()}
                           </span>
@@ -407,7 +502,7 @@ export default function CalendarSettingsModal({
               <div className={styles.section}>
                 <h3>Coordinación Operativa Diaria</h3>
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', fontWeight: 600 }}>
+                  <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', fontWeight: 600, color: '#0f172a' }}>
                     <input 
                       type="checkbox" 
                       checked={requiresDaily} 
@@ -471,7 +566,7 @@ export default function CalendarSettingsModal({
                             ) : (
                               <>
                                 <div style={{ flex: 1, paddingRight: '1rem' }}>
-                                  <strong>{target.name}</strong>
+                                  <strong style={{ color: '#0f172a' }}>{target.name}</strong>
                                   {target.contactNotes && (
                                     <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', marginTop: '0.1rem' }}>
                                       {target.contactNotes}

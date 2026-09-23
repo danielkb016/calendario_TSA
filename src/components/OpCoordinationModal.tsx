@@ -140,7 +140,7 @@ export default function OpCoordinationModal({
     <div className={styles.overlay} onClick={onClose}>
       <div className={`card ${styles.modal}`} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
-          <h3>{isCreatingNew ? `Firma Operativa: ${status.callTarget?.name}` : `Gestionar Ciclo: ${status.callTarget?.name}`}</h3>
+          <h3 style={{ margin: 0, color: '#0f172a' }}>{isCreatingNew ? `Firma Operativa: ${status.callTarget?.name}` : `Gestionar Ciclo: ${status.callTarget?.name}`}</h3>
           <button className={styles.closeBtn} onClick={onClose}>&times;</button>
         </div>
 
@@ -150,13 +150,13 @@ export default function OpCoordinationModal({
           {(!isCreatingNew && existingCycle) && (
             <div className={styles.statusSection}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ margin: 0 }}>Estado del Ciclo</h4>
+                <h4 style={{ margin: 0, color: '#0f172a' }}>Estado del Ciclo</h4>
                 <button onClick={handleDeleteCycle} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}>Eliminar ciclo</button>
               </div>
 
               {(status.callTarget?.requiresOpening ?? true) && (
                 <div className={styles.statusItem}>
-                  <span className={styles.statusLabel}>Apertura:</span>
+                  <span className={styles.statusLabel} style={{ color: '#334155' }}>Apertura:</span>
                   {existingCycle.opened ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                       <span className={styles.statusDone}>
@@ -172,7 +172,7 @@ export default function OpCoordinationModal({
               
               {(status.callTarget?.requiresClosing ?? true) && (
                 <div className={styles.statusItem}>
-                  <span className={styles.statusLabel}>Cierre:</span>
+                  <span className={styles.statusLabel} style={{ color: '#334155' }}>Cierre:</span>
                   {existingCycle.closed ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                       <span className={styles.statusDone}>

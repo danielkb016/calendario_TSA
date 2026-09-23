@@ -13,6 +13,52 @@ import OpCoordinationModal from './OpCoordinationModal';
 import CalendarSettingsModal from './CalendarSettingsModal';
 import styles from './TodayStatusBanner.module.css';
 
+function WeatherBadge({ lat, lng }: { lat: number, lng: number }) {
+  const [weather, setWeather] = useState<{windSpeed: number, temp: number, code: number} | null>(null);
+
+  React.useEffect(() => {
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.current_weather) {
+          setWeather({
+            windSpeed: data.current_weather.windspeed,
+            temp: data.current_weather.temperature,
+            code: data.current_weather.weathercode
+          });
+        }
+      })
+      .catch(err => console.error("Error fetching weather:", err));
+  }, [lat, lng]);
+
+  if (!weather) return <div className={styles.weatherBadge} style={{ opacity: 0.5 }}>Cargando clima...</div>;
+
+  const getWeatherEmoji = (code: number) => {
+    if (code === 0) return '☀️'; // Despejado
+    if (code >= 1 && code <= 3) return '⛅'; // Nubes
+    if (code >= 51 && code <= 67) return '🌧️'; // Lluvia
+    if (code >= 71 && code <= 77) return '❄️'; // Nieve
+    if (code >= 95 && code <= 99) return '⛈️'; // Tormenta
+    return '🌡️';
+  };
+
+  return (
+    <div className={styles.weatherBadge}>
+      <div className={styles.weatherData}>
+        <div className={styles.weatherItem}>
+          <span>💨</span> Viento: {weather.windSpeed} km/h
+        </div>
+        <div className={styles.weatherItem}>
+          <span>{getWeatherEmoji(weather.code)}</span> Temp: {weather.temp} °C
+        </div>
+      </div>
+      <div className={styles.coordText}>
+        Lat: {lat.toFixed(4)}<br/>Lng: {lng.toFixed(4)}
+      </div>
+    </div>
+  );
+}
+
 type GlobalPermit = {
   id: number;
   name: string;
@@ -49,7 +95,7 @@ type DailyCallStatus = {
 };
 
 type GlobalCoordination = {
-  calendar: { id: number; title: string; isLocked?: boolean; lockReason?: string | null };
+  calendar: { id: number; title: string; isLocked?: boolean; lockReason?: string | null; lat?: number | null; lng?: number | null };
   statuses: DailyCallStatus[];
   globalPermits?: GlobalPermit[];
 };
@@ -64,6 +110,8 @@ type FullCalendar = {
   id: number;
   title: string;
   requiresDailyCoordination: boolean;
+  lat?: number | null;
+  lng?: number | null;
   zones: any[];
   callTargets?: any[];
   globalPermits?: any[];
@@ -84,10 +132,10 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
   const [expandedNotes, setExpandedNotes] = useState<Record<number, boolean>>({});
   const [editingCalendarId, setEditingCalendarId] = useState<number | null>(null);
 
-  if (coordinations.length === 0) {
-    return null; 
-  }
-
+  // Always render the banner so the UI doesn't disappear when empty.
+  // if (coordinations.length === 0) {
+  //   return null; 
+  // }
   const filteredCoordinations = selectedCalendarId === 'all' 
     ? coordinations 
     : coordinations.filter(c => c.calendar.id.toString() === selectedCalendarId);
@@ -129,85 +177,54 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
   const selectedDate = currentDateIso ? new Date(currentDateIso) : new Date();
 
   return (
-    <div className={`${styles.banner} ${styles.yellowBanner}`} style={{ margin: '1rem', marginTop: 0, position: 'relative' }}>
-      {lastRefreshed && (
-        <div style={{ position: 'absolute', top: '0.5rem', right: '1rem', fontSize: '0.65rem', color: '#64748b' }}>
-          Última actualización: {lastRefreshed.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-        </div>
-      )}
-      <div className={styles.icon}>📢</div>
-      <div className={styles.content}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem', gap: '0.75rem' }}>
-          <div style={{ textAlign: 'center' }}>
-            <h5 className={styles.title} style={{ marginBottom: '0.2rem', fontSize: '1rem' }}>Coordinaciones Operacionales Diarias (Global)</h5>
-            <p className={styles.description} style={{ margin: 0, fontSize: '0.8rem' }}>
-              Resumen de todas las ubicaciones y sitios a los que hay que llamar para el día seleccionado.
-            </p>
+    <div className={styles.banner} style={{ margin: '1rem', marginTop: 0 }}>
+      <div className={styles.headerContent}>
+        {lastRefreshed && (
+          <div style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', fontSize: '0.65rem', color: '#64748b' }}>
+            Actualizado: {lastRefreshed.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
           </div>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button
-                onClick={() => setSelectedCalendarId('all')}
-                style={{
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: '999px',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  backgroundColor: selectedCalendarId === 'all' ? '#3b82f6' : '#e2e8f0',
-                  color: selectedCalendarId === 'all' ? '#fff' : '#475569',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Todas
-              </button>
-              {coordinations.map(c => (
-                <button
-                  key={c.calendar.id}
-                  onClick={() => setSelectedCalendarId(c.calendar.id.toString())}
-                  style={{
-                    padding: '0.4rem 0.8rem',
-                    borderRadius: '999px',
-                    border: 'none',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    backgroundColor: selectedCalendarId === c.calendar.id.toString() ? '#3b82f6' : '#e2e8f0',
-                    color: selectedCalendarId === c.calendar.id.toString() ? '#fff' : '#475569',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {c.calendar.title}
-                </button>
-              ))}
-            </div>
+        )}
+        
+        <h5 className={styles.title}>Coordinaciones Operacionales Diarias (Global)</h5>
+        <p className={styles.description}>
+          Resumen de ubicaciones y sitios a los que hay que llamar para el día seleccionado.
+        </p>
 
-            {/* Separador */}
-            <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1' }} className={styles.hideOnMobile}></div>
-
-            {/* Selector de Fecha Global */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: isHistorical ? '#fef2f2' : '#f1f5f9', padding: '0.3rem 0.8rem', borderRadius: '999px', border: '1px solid', borderColor: isHistorical ? '#fca5a5' : '#cbd5e1' }}>
-              <span style={{ fontSize: '0.8rem', color: isHistorical ? '#ef4444' : '#64748b', fontWeight: 'bold' }}>📅 Fecha:</span>
-              <span style={{ fontSize: '0.8rem', color: isHistorical ? '#dc2626' : '#475569', fontWeight: 500 }}>
-                {selectedDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </span>
-              <input 
-                type="date" 
-                style={{ border: 'none', background: 'transparent', fontSize: '0.8rem', color: isHistorical ? '#dc2626' : '#475569', outline: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-                value={currentDateIso || todayStr}
-                onChange={handleDateChange}
-              />
-            </div>
+        {isHistorical && (
+          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, marginTop: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+            ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
-          {isHistorical && (
-            <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid #f87171', display: 'inline-block', marginTop: '0.5rem' }}>
-              ⚠️ ATENCIÓN: Estás viendo el histórico de datos del día {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
-            </div>
-          )}
+        )}
+
+        <div className={styles.tabsContainer}>
+          <button
+            onClick={() => setSelectedCalendarId('all')}
+            className={`${styles.tabBtn} ${selectedCalendarId === 'all' ? styles.activeTab : ''}`}
+          >
+            Todas
+          </button>
+          {coordinations.map(c => (
+            <button
+              key={c.calendar.id}
+              onClick={() => setSelectedCalendarId(c.calendar.id.toString())}
+              className={`${styles.tabBtn} ${selectedCalendarId === c.calendar.id.toString() ? styles.activeTab : ''}`}
+            >
+              {c.calendar.title}
+            </button>
+          ))}
         </div>
 
-        <div className={styles.grid} style={{ marginTop: '1rem' }}>
+        <div className={styles.datePill}>
+          <span>📅</span>
+          <input 
+            type="date" 
+            value={currentDateIso || todayStr}
+            onChange={handleDateChange}
+          />
+        </div>
+      </div>
+
+      <div className={styles.grid}>
           {filteredCoordinations.map(coord => {
             const isLocked = !!coord.calendar.isLocked;
             const lockReason = coord.calendar.lockReason;
@@ -217,55 +234,50 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                 key={coord.calendar.id} 
                 className={styles.card}
                 style={{
-                  backgroundColor: isLocked ? '#f8fafc' : '#ffffff',
-                  borderColor: isLocked ? '#94a3b8' : '#e2e8f0',
-                  opacity: isLocked ? 0.9 : 1
+                  opacity: isLocked ? 0.7 : 1,
+                  filter: isLocked ? 'grayscale(80%)' : 'none'
                 }}
               >
-                <div className={styles.cardHeader} style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '1.4rem' }}>📍</span>
-                      <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: isLocked ? '#64748b' : '#0f172a', letterSpacing: '-0.02em', textTransform: 'uppercase', textDecoration: isLocked ? 'line-through' : 'none' }}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.lockIconContainer}>
+                    <span style={{ fontSize: '1.8rem' }}>{isLocked ? '🔒' : '📍'}</span>
+                  </div>
+                  <div className={styles.cardTitleArea}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <h3 className={styles.cardTitle} style={{ textDecoration: isLocked ? 'line-through' : 'none' }}>
                         {coord.calendar.title}
                       </h3>
+                      {fullCalendars && (
+                        <button onClick={() => setEditingCalendarId(coord.calendar.id)} className={styles.actionBtn} style={{ padding: '0.2rem 0.5rem', background: 'transparent' }} title="Editar Configuración">
+                          ⚙️
+                        </button>
+                      )}
                     </div>
-                    {fullCalendars && (
-                      <button 
-                        onClick={() => setEditingCalendarId(coord.calendar.id)}
-                        style={{ background: 'none', border: 'none', fontSize: '0.8rem', cursor: 'pointer', color: '#64748b' }}
-                        title="Editar Permisos y Configuración"
-                      >
-                        ⚙️ Editar
-                      </button>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem' }}>
+                      <input 
+                        type="checkbox" 
+                        id={`lock-${coord.calendar.id}`}
+                        checked={isLocked}
+                        onChange={() => handleToggleLock(coord.calendar.id, isLocked)}
+                        style={{ cursor: 'pointer', accentColor: '#475569' }}
+                      />
+                      <label htmlFor={`lock-${coord.calendar.id}`} style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 'bold', cursor: 'pointer' }}>
+                        BLOQUEAR
+                      </label>
+                    </div>
+                    {isLocked && (
+                      <div style={{ marginTop: '0.4rem', fontSize: '0.7rem', color: '#fca5a5', fontWeight: 600 }}>
+                        Bloqueada: {lockReason}
+                      </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-                    <input 
-                      type="checkbox" 
-                      id={`lock-${coord.calendar.id}`}
-                      checked={isLocked}
-                      onChange={() => handleToggleLock(coord.calendar.id, isLocked)}
-                      style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#475569' }}
-                    />
-                    <label htmlFor={`lock-${coord.calendar.id}`} style={{ fontSize: '0.85rem', color: isLocked ? '#334155' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>
-                      BLOQUEAR UBICACIÓN
-                    </label>
-                  </div>
-                  {isLocked && (
-                    <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#f1f5f9', borderLeft: '4px solid #64748b', borderRadius: '4px', fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>
-                      🔒 UBICACIÓN BLOQUEADA: <span style={{ color: '#0f172a' }}>{lockReason}</span>
-                    </div>
-                  )}
                 </div>
-                <div className={styles.cardBody} style={{ padding: '0.5rem 1rem', pointerEvents: isLocked ? 'none' : 'auto', filter: isLocked ? 'grayscale(100%) opacity(0.7)' : 'none' }}>
-                  
+
+                <div style={{ flex: 1, pointerEvents: isLocked ? 'none' : 'auto' }}>
                   {coord.statuses && coord.statuses.length > 0 && (
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700, letterSpacing: '0.05em' }}>PERMISOS DIARIOS</span>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
-                      </div>
+                    <div>
+                      <div className={styles.sectionLabel}>PERMISOS DIARIOS</div>
                       
                       {coord.statuses.map(status => {
                         const cycles = status.cycles || [];
@@ -273,122 +285,73 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                         const isCurrentlyOpen = latestCycle && latestCycle.opened && !latestCycle.closed;
 
                         return (
-                        <div key={status.id} style={{ 
-                          backgroundColor: isCurrentlyOpen ? '#ecfdf5' : '#ffffff',
-                          border: '1px solid',
-                          borderColor: isCurrentlyOpen ? '#a7f3d0' : '#e2e8f0',
-                          borderLeftWidth: '5px',
-                          borderLeftColor: isCurrentlyOpen ? '#10b981' : '#cbd5e1',
-                          padding: '1rem', 
-                          borderRadius: '8px',
-                          marginBottom: '1rem',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                <strong style={{ fontSize: '1.1rem', color: isCurrentlyOpen ? '#065f46' : '#334155' }}>
-                                  {status.callTarget?.name}
-                                </strong>
-                                <div 
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    if (isCurrentlyOpen) {
-                                       setQuickActionStatus({ status, cycleId: latestCycle.id });
-                                    } else {
-                                       setQuickActionStatus({ status });
-                                    }
-                                  }}
-                                  style={{ flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', borderRadius: '999px', backgroundColor: isCurrentlyOpen ? '#10b981' : '#f1f5f9', boxShadow: isCurrentlyOpen ? '0 2px 4px rgba(16,185,129,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)', border: '1px solid', borderColor: isCurrentlyOpen ? '#059669' : '#cbd5e1' }}
-                                  title={isCurrentlyOpen ? 'Haz clic para CERRAR' : 'Haz clic para ABRIR'}
-                                >
-                                  {/* Custom Toggle Track */}
-                                  <div style={{ 
-                                    width: '36px', height: '18px', borderRadius: '18px', 
-                                    backgroundColor: isCurrentlyOpen ? '#34d399' : '#cbd5e1', 
-                                    position: 'relative', transition: 'background-color 0.2s' 
-                                  }}>
-                                    <div style={{
-                                      width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'white',
-                                      position: 'absolute', top: '2px', left: isCurrentlyOpen ? '20px' : '2px',
-                                      transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.3)'
-                                    }} />
-                                  </div>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: isCurrentlyOpen ? 'white' : '#64748b', letterSpacing: '0.05em' }}>
-                                    {isCurrentlyOpen ? 'ABIERTA' : 'CERRADA'}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              {/* Opciones Adicionales */}
-                              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.2rem' }}>
-                                  {status.callTarget?.contactNotes && (
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); toggleNote(status.callTarget!.id); }}
-                                      style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '0.3rem', 
-                                        backgroundColor: expandedNotes[status.callTarget.id] ? '#e0f2fe' : '#f0f9ff', 
-                                        color: '#0284c7', border: '1px solid #bae6fd', 
-                                        padding: '0.4rem 0.75rem', borderRadius: '999px', 
-                                        fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                    >
-                                      <span>📞</span> {expandedNotes[status.callTarget.id] ? 'Ocultar Contacto' : 'Contacto'}
-                                    </button>
-                                  )}
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
-                                    style={{ 
-                                      display: 'flex', alignItems: 'center', gap: '0.3rem', 
-                                      backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', 
-                                      padding: '0.4rem 0.75rem', borderRadius: '999px', 
-                                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                  >
-                                    <span>📝</span> Nota
-                                  </button>
-                                </div>
-                              
-                              {status.callTarget?.contactNotes && expandedNotes[status.callTarget.id] && (
-                                <div style={{ fontSize: '0.8rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem', whiteSpace: 'pre-wrap' }}>
-                                  {status.callTarget.contactNotes}
-                                </div>
-                              )}
+                        <div key={status.id} className={styles.innerItem} style={{ borderColor: isCurrentlyOpen ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)' }}>
+                          <div className={styles.innerItemHeader}>
+                            <span className={styles.innerItemName} style={{ color: isCurrentlyOpen ? '#6ee7b7' : '#f1f5f9' }}>
+                              {status.callTarget?.name}
+                            </span>
+                            <div 
+                              className={`${styles.statusPill} ${isCurrentlyOpen ? styles.abierta : styles.cerrada}`}
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (isCurrentlyOpen) {
+                                   setQuickActionStatus({ status, cycleId: latestCycle.id });
+                                } else {
+                                   setQuickActionStatus({ status });
+                                }
+                              }}
+                            >
+                              <div className={styles.dot} />
+                              {isCurrentlyOpen ? 'ABIERTA' : 'CERRADA'}
                             </div>
                           </div>
+                          
+                          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            {status.callTarget?.contactNotes && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); toggleNote(status.callTarget!.id); }}
+                                className={styles.actionBtn}
+                              >
+                                📞 {expandedNotes[status.callTarget.id] ? 'Ocultar' : 'Contacto'}
+                              </button>
+                            )}
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
+                              className={styles.actionBtn}
+                            >
+                              📝 Nota
+                            </button>
+                          </div>
+
+                          {status.callTarget?.contactNotes && expandedNotes[status.callTarget.id] && (
+                            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '4px', marginBottom: '0.5rem', whiteSpace: 'pre-wrap' }}>
+                              {status.callTarget.contactNotes}
+                            </div>
+                          )}
 
                           {status.cycles && status.cycles.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '1rem' }}>
-                              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Histórico de Aperturas y Cierres ({status.cycles.length})</span>
-                              {status.cycles.map((cycle, idx) => (
-                                <div key={cycle.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#475569' }}>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
+                              {status.cycles.map((cycle) => (
+                                <div key={cycle.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: '0.3rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', color: '#94a3b8' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
                                     {cycle.opened ? (
-                                      <span>🟢 Abierto por <strong>{cycle.openedBy}</strong> a las {new Date(cycle.openedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                      <span style={{ color: '#6ee7b7' }}>🟢 Abierto por {cycle.openedBy} ({new Date(cycle.openedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</span>
                                     ) : (
-                                      <span>⏳ <em>Pendiente de apertura</em></span>
+                                      <span>⏳ Pendiente de apertura</span>
                                     )}
                                     {cycle.closed ? (
-                                      <span>🔴 Cerrado por <strong>{cycle.closedBy}</strong> a las {new Date(cycle.closedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                      <span style={{ color: '#fca5a5' }}>🔴 Cerrado por {cycle.closedBy} ({new Date(cycle.closedAt!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</span>
                                     ) : null}
                                   </div>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status, cycleId: cycle.id }); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', opacity: 0.5, padding: '0.2rem' }}
-                                    title="Modificar registro"
-                                  >
-                                    ✏️
-                                  </button>
+                                  <button onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status, cycleId: cycle.id }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.7 }} title="Editar">✏️</button>
                                 </div>
                               ))}
                             </div>
                           )}
 
                           {status.notes && (
-                            <div className={styles.timeInfo} style={{ backgroundColor: '#fffbeb', padding: '0.25rem 0.5rem', borderRadius: '4px', borderLeft: '2px solid #fbbf24', marginTop: '0.75rem', fontSize: '0.8rem' }}>
-                              <strong>📝 Nota Diaria General:</strong> {status.notes}
+                            <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', padding: '0.4rem', borderRadius: '4px', borderLeft: '2px solid #f59e0b', marginTop: '0.5rem', fontSize: '0.75rem' }}>
+                              <strong>Nota Diaria:</strong> {status.notes}
                             </div>
                           )}
                         </div>
@@ -397,36 +360,25 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                   )}
 
                   {coord.statuses.length === 0 && (
-                    <p style={{ color: '#64748b', fontSize: '0.8rem', fontStyle: 'italic', margin: 0, marginBottom: '1.5rem' }}>No hay sitios configurados para llamar en este calendario.</p>
+                    <p style={{ color: '#64748b', fontSize: '0.75rem', fontStyle: 'italic', margin: 0, marginBottom: '1rem' }}>No hay sitios a los que llamar.</p>
                   )}
                   
-                  {/* Global Permits Summary for this calendar */}
                   {coord.globalPermits && coord.globalPermits.length > 0 && (
-                    <div style={{ paddingTop: '1rem', borderTop: '2px dashed #cbd5e1' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>PERMISOS GLOBALES</span>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ marginTop: '1rem' }}>
+                      <div className={styles.sectionLabel}>PERMISOS GLOBALES</div>
+                      <div className={styles.globalPermitsList}>
                         {coord.globalPermits.map(permit => {
                           const expDate = new Date(permit.expirationDate);
                           const daysLeft = Math.ceil((expDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24));
                           
-                          let color = '#16a34a'; // Green > 30 days
-                          let bgColor = '#dcfce7';
-                          
-                          if (daysLeft < 0) {
-                            color = '#dc2626'; // Red < 0 days (caducado)
-                            bgColor = '#fee2e2';
-                          } else if (daysLeft <= 30) {
-                            color = '#ca8a04'; // Yellow <= 30 days
-                            bgColor = '#fef08a';
-                          }
+                          let color = '#4ade80';
+                          if (daysLeft < 0) color = '#f87171';
+                          else if (daysLeft <= 30) color = '#facc15';
                           
                           return (
-                            <div key={permit.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.2rem 0.6rem', backgroundColor: bgColor, color: color, borderRadius: '999px', border: `1px solid ${color}40`, fontWeight: 600 }}>
+                            <div key={permit.id} className={styles.globalPermitItem} style={{ borderColor: color }}>
                               <span>{permit.name}</span>
-                              <span style={{ opacity: 0.8, fontWeight: 400 }}>• {expDate.toLocaleDateString()}</span>
+                              <span style={{ color }}>{expDate.toLocaleDateString()}</span>
                             </div>
                           );
                         })}
@@ -434,12 +386,14 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                     </div>
                   )}
                 </div>
+
+                {coord.calendar.lat != null && coord.calendar.lng != null && (
+                  <WeatherBadge lat={coord.calendar.lat} lng={coord.calendar.lng} />
+                )}
               </div>
             );
           })}
         </div>
-      </div>
-
       {quickActionStatus && (
         <OpCoordinationModal 
           status={quickActionStatus.status}
