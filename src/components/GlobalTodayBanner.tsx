@@ -13,23 +13,24 @@ import OpCoordinationModal from './OpCoordinationModal';
 import CalendarSettingsModal from './CalendarSettingsModal';
 import styles from './TodayStatusBanner.module.css';
 
-function WeatherBadge({ lat, lng }: { lat: number, lng: number }) {
-  const [weather, setWeather] = useState<{windSpeed: number, temp: number, code: number} | null>(null);
+function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, lastRefreshed?: Date }) {
+  const [weather, setWeather] = useState<{windSpeed: number, temp: number, code: number, rainProb: number} | null>(null);
 
   React.useEffect(() => {
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`)
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m,weather_code,precipitation_probability`)
       .then(res => res.json())
       .then(data => {
-        if (data.current_weather) {
+        if (data.current) {
           setWeather({
-            windSpeed: data.current_weather.windspeed,
-            temp: data.current_weather.temperature,
-            code: data.current_weather.weathercode
+            windSpeed: data.current.wind_speed_10m,
+            temp: data.current.temperature_2m,
+            code: data.current.weather_code,
+            rainProb: data.current.precipitation_probability
           });
         }
       })
       .catch(err => console.error("Error fetching weather:", err));
-  }, [lat, lng]);
+  }, [lat, lng, lastRefreshed]);
 
   if (!weather) return <div className={styles.weatherBadge} style={{ opacity: 0.5 }}>Cargando clima...</div>;
 
@@ -42,18 +43,27 @@ function WeatherBadge({ lat, lng }: { lat: number, lng: number }) {
     return '🌡️';
   };
 
+  let borderClass = '';
+  if ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 95 && weather.code <= 99)) {
+    borderClass = styles.weatherAlertRed;
+  } else if (weather.windSpeed > 40) {
+    borderClass = styles.weatherAlertRed;
+  } else if (weather.windSpeed >= 20 && weather.windSpeed <= 40) {
+    borderClass = styles.weatherAlertYellow;
+  }
+
   return (
-    <div className={styles.weatherBadge}>
+    <div className={`${styles.weatherBadge} ${borderClass}`}>
       <div className={styles.weatherData}>
         <div className={styles.weatherItem}>
-          <span>💨</span> Viento: {weather.windSpeed} km/h
+          <span>💨</span> {weather.windSpeed} km/h
         </div>
         <div className={styles.weatherItem}>
-          <span>{getWeatherEmoji(weather.code)}</span> Temp: {weather.temp} °C
+          <span>{getWeatherEmoji(weather.code)}</span> {weather.temp} °C
         </div>
-      </div>
-      <div className={styles.coordText}>
-        Lat: {lat.toFixed(4)}<br/>Lng: {lng.toFixed(4)}
+        <div className={styles.weatherItem}>
+          <span>☔</span> {weather.rainProb}%
+        </div>
       </div>
     </div>
   );
@@ -388,7 +398,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                 </div>
 
                 {coord.calendar.lat != null && coord.calendar.lng != null && (
-                  <WeatherBadge lat={coord.calendar.lat} lng={coord.calendar.lng} />
+                  <WeatherBadge lat={coord.calendar.lat} lng={coord.calendar.lng} lastRefreshed={lastRefreshed} />
                 )}
               </div>
             );
