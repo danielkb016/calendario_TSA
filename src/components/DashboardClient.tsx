@@ -60,6 +60,28 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
     return () => clearInterval(interval);
   }, [router]);
 
+  // Force a hard reload if the user's local day changes (e.g. crossing midnight or waking up a sleeping PC)
+  useEffect(() => {
+    let initialDateStr = new Date().toDateString();
+    
+    const checkDayChange = () => {
+      if (new Date().toDateString() !== initialDateStr) {
+        window.location.reload();
+      }
+    };
+
+    const interval = setInterval(checkDayChange, 60000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') checkDayChange();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
   const activeCalendar = initialCalendars.find(c => c.id === activeCalendarId);
 
   const handleDelete = async (id: number, title: string, e: React.MouseEvent) => {
