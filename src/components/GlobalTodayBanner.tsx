@@ -181,8 +181,16 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
     }
   };
 
-  const selectedDateStr = currentDateIso || new Date().toISOString().split('T')[0];
-  const todayStr = new Date().toISOString().split('T')[0];
+  const getLocalDateStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const todayStr = getLocalDateStr();
+  const selectedDateStr = currentDateIso || todayStr;
   const isHistorical = selectedDateStr !== todayStr;
   const selectedDate = currentDateIso ? new Date(currentDateIso) : new Date();
 
