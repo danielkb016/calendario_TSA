@@ -15,6 +15,20 @@ import styles from './TodayStatusBanner.module.css';
 
 function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, lastRefreshed?: Date }) {
   const [weather, setWeather] = useState<{windSpeed: number, temp: number, code: number, rainProb: number} | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [limits, setLimits] = useState({
+    rain: 30,
+    windYellow: 20,
+    windRed: 40,
+    tempMax: 35
+  });
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('weatherLimits');
+    if (saved) {
+      try { setLimits(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
 
   React.useEffect(() => {
     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m,weather_code,precipitation_probability`)
@@ -47,35 +61,81 @@ function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, l
   let borderClass = '';
   let windTextClass = '';
   let rainTextClass = '';
+  let tempTextClass = '';
 
-  const isRainAlert = weather.code >= 51 || weather.rainProb >= 50;
-  const isWindRed = weather.windSpeed > 40;
-  const isWindYellow = weather.windSpeed >= 20 && weather.windSpeed <= 40;
+  const isRainAlert = weather.code >= 51 || weather.rainProb >= limits.rain;
+  const isWindRed = weather.windSpeed >= limits.windRed;
+  const isWindYellow = weather.windSpeed >= limits.windYellow && weather.windSpeed < limits.windRed;
+  const isTempAlert = weather.temp >= limits.tempMax;
 
   if (isRainAlert) rainTextClass = styles.textAlertRed;
   if (isWindRed) windTextClass = styles.textAlertRed;
   else if (isWindYellow) windTextClass = styles.textAlertYellow;
+  if (isTempAlert) tempTextClass = styles.textAlertRed;
 
-  if (isRainAlert || isWindRed) {
+  if (isRainAlert || isWindRed || isTempAlert) {
     borderClass = styles.weatherAlertRed;
   } else if (isWindYellow) {
     borderClass = styles.weatherAlertYellow;
   }
 
   return (
-    <div className={`${styles.weatherBadge} ${borderClass}`}>
-      <div className={styles.weatherData}>
-        <div className={`${styles.weatherItem} ${windTextClass}`}>
-          <span>💨</span> {weather.windSpeed} km/h
-        </div>
-        <div className={styles.weatherItem}>
-          <span>{getWeatherEmoji(weather.code)}</span> {weather.temp} °C
-        </div>
-        <div className={`${styles.weatherItem} ${rainTextClass}`}>
-          <span>☔</span> {weather.rainProb}%
+    <>
+      <div className={`${styles.weatherBadge} ${borderClass}`} style={{ position: 'relative' }}>
+        <button 
+          onClick={() => setShowSettings(true)}
+          style={{ position: 'absolute', top: 2, right: 4, background: 'none', border: 'none', cursor: 'pointer', opacity: 0.4, fontSize: '0.75rem' }}
+          title="Ajustar límites de alertas"
+        >⚙️</button>
+        <div className={styles.weatherData}>
+          <div className={`${styles.weatherItem} ${windTextClass}`}>
+            <span>💨</span> {weather.windSpeed} km/h
+          </div>
+          <div className={`${styles.weatherItem} ${tempTextClass}`}>
+            <span>{getWeatherEmoji(weather.code)}</span> {weather.temp} °C
+          </div>
+          <div className={`${styles.weatherItem} ${rainTextClass}`}>
+            <span>☔</span> {weather.rainProb}%
+          </div>
         </div>
       </div>
-    </div>
+
+      {showSettings && (
+        <div className={styles.settingsOverlay} onClick={() => setShowSettings(false)}>
+          <div className={styles.settingsModal} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.1rem' }}>Alertas Clima</h3>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '1.5rem' }}>Configura a partir de qué valor saltan los colores parpadeantes.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '0.3rem' }}>Probabilidad Lluvia (%)</label>
+                <input type="number" className={styles.settingsInput} value={limits.rain} onChange={e => setLimits({...limits, rain: Number(e.target.value)})} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '0.3rem' }}>Viento Alerta Amarilla (km/h)</label>
+                <input type="number" className={styles.settingsInput} value={limits.windYellow} onChange={e => setLimits({...limits, windYellow: Number(e.target.value)})} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '0.3rem' }}>Viento Alerta Roja (km/h)</label>
+                <input type="number" className={styles.settingsInput} value={limits.windRed} onChange={e => setLimits({...limits, windRed: Number(e.target.value)})} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '0.3rem' }}>Temperatura Max (°C)</label>
+                <input type="number" className={styles.settingsInput} value={limits.tempMax} onChange={e => setLimits({...limits, tempMax: Number(e.target.value)})} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.5rem' }}>
+              <button className={styles.btnSecondary} onClick={() => setShowSettings(false)}>Cerrar</button>
+              <button className={styles.btnPrimary} onClick={() => {
+                localStorage.setItem('weatherLimits', JSON.stringify(limits));
+                setShowSettings(false);
+              }}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -415,7 +475,7 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
                   )}
                 </div>
 
-                {coord.calendar.lat != null && coord.calendar.lng != null && (
+                {!isHistorical && coord.calendar.lat != null && coord.calendar.lng != null && (
                   <WeatherBadge lat={coord.calendar.lat} lng={coord.calendar.lng} lastRefreshed={lastRefreshed} />
                 )}
               </div>
