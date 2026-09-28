@@ -37,14 +37,16 @@ function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, l
   const getWeatherEmoji = (code: number) => {
     if (code === 0) return '☀️'; // Despejado
     if (code >= 1 && code <= 3) return '⛅'; // Nubes
-    if (code >= 51 && code <= 67) return '🌧️'; // Lluvia
-    if (code >= 71 && code <= 77) return '❄️'; // Nieve
+    if (code >= 45 && code <= 48) return '🌫️'; // Niebla
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return '🌧️'; // Lluvia / Chubascos
+    if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return '❄️'; // Nieve
     if (code >= 95 && code <= 99) return '⛈️'; // Tormenta
     return '🌡️';
   };
 
   let borderClass = '';
-  if ((weather.code >= 51 && weather.code <= 67) || (weather.code >= 95 && weather.code <= 99)) {
+  // Activa la alerta roja si hay código de lluvia/nieve/tormenta (>=51) O la probabilidad de lluvia es muy alta (>= 50%)
+  if (weather.code >= 51 || weather.rainProb >= 50) {
     borderClass = styles.weatherAlertRed;
   } else if (weather.windSpeed > 40) {
     borderClass = styles.weatherAlertRed;
