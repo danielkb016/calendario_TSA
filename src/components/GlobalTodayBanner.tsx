@@ -45,25 +45,33 @@ function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, l
   };
 
   let borderClass = '';
-  // Activa la alerta roja si hay código de lluvia/nieve/tormenta (>=51) O la probabilidad de lluvia es muy alta (>= 50%)
-  if (weather.code >= 51 || weather.rainProb >= 50) {
+  let windTextClass = '';
+  let rainTextClass = '';
+
+  const isRainAlert = weather.code >= 51 || weather.rainProb >= 50;
+  const isWindRed = weather.windSpeed > 40;
+  const isWindYellow = weather.windSpeed >= 20 && weather.windSpeed <= 40;
+
+  if (isRainAlert) rainTextClass = styles.textAlertRed;
+  if (isWindRed) windTextClass = styles.textAlertRed;
+  else if (isWindYellow) windTextClass = styles.textAlertYellow;
+
+  if (isRainAlert || isWindRed) {
     borderClass = styles.weatherAlertRed;
-  } else if (weather.windSpeed > 40) {
-    borderClass = styles.weatherAlertRed;
-  } else if (weather.windSpeed >= 20 && weather.windSpeed <= 40) {
+  } else if (isWindYellow) {
     borderClass = styles.weatherAlertYellow;
   }
 
   return (
     <div className={`${styles.weatherBadge} ${borderClass}`}>
       <div className={styles.weatherData}>
-        <div className={styles.weatherItem}>
+        <div className={`${styles.weatherItem} ${windTextClass}`}>
           <span>💨</span> {weather.windSpeed} km/h
         </div>
         <div className={styles.weatherItem}>
           <span>{getWeatherEmoji(weather.code)}</span> {weather.temp} °C
         </div>
-        <div className={styles.weatherItem}>
+        <div className={`${styles.weatherItem} ${rainTextClass}`}>
           <span>☔</span> {weather.rainProb}%
         </div>
       </div>

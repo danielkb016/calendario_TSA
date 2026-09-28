@@ -310,6 +310,24 @@
   50% { border-color: transparent; box-shadow: none; }
 }
 
+.textAlertYellow {
+  animation: blinkTextYellow 1.5s infinite;
+}
+
+.textAlertRed {
+  animation: blinkTextRed 1s infinite;
+}
+
+@keyframes blinkTextYellow {
+  0%, 100% { color: #eab308; text-shadow: 0 0 5px rgba(234, 179, 8, 0.5); }
+  50% { color: #94a3b8; text-shadow: none; }
+}
+
+@keyframes blinkTextRed {
+  0%, 100% { color: #ef4444; text-shadow: 0 0 8px rgba(239, 68, 68, 0.7); }
+  50% { color: #94a3b8; text-shadow: none; }
+}
+
 .weatherData {
   display: flex;
   gap: 1.5rem;
