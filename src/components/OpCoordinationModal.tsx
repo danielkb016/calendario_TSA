@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateDailyCallStatus, updateDailyCallCycle, createDailyCallCycle, deleteDailyCallCycle, openCoordinationUntilDate } from '@/app/actions';
+import { updateDailyCallStatus, updateDailyCallCycle, createDailyCallCycle, deleteDailyCallCycle, openCoordinationUntilDate, deleteFutureDailyCallCycles } from '@/app/actions';
 import styles from './OpCoordinationModal.module.css';
 
 type Operator = { id: number; name: string; };
@@ -127,10 +127,22 @@ export default function OpCoordinationModal({
 
   const handleDeleteCycle = async () => {
     if (!cycleId) return;
-    if (!confirm('¿Seguro que quieres eliminar este ciclo completo?')) return;
+    
+    if (!confirm('¿Seguro que quieres eliminar este ciclo?')) return;
+
+    const deleteFuture = confirm(
+      '¿Quieres eliminar también todas las aperturas futuras para este sitio a partir de este día?\n\n' +
+      'Aceptar: Eliminar el ciclo de hoy Y LOS FUTUROS.\n' +
+      'Cancelar: Eliminar SOLO el ciclo de hoy.'
+    );
+
     setLoading(true);
     try {
-      await deleteDailyCallCycle(cycleId);
+      if (deleteFuture) {
+        await deleteFutureDailyCallCycles(status.callTargetId, status.date);
+      } else {
+        await deleteDailyCallCycle(cycleId);
+      }
       onUpdated();
       onClose();
     } catch (error) {

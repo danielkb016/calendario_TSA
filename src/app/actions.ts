@@ -296,6 +296,29 @@ export async function deleteDailyCallCycle(id: number) {
   revalidatePath('/');
 }
 
+export async function deleteFutureDailyCallCycles(callTargetId: number, fromDate: Date) {
+  // Find all DailyCallStatus for this target on or after the date
+  const futureStatuses = await prisma.dailyCallStatus.findMany({
+    where: {
+      callTargetId: callTargetId,
+      date: { gte: fromDate }
+    }
+  });
+
+  const statusIds = futureStatuses.map(s => s.id);
+
+  // Delete all cycles associated with those statuses
+  if (statusIds.length > 0) {
+    await prisma.dailyCallCycle.deleteMany({
+      where: {
+        dailyCallStatusId: { in: statusIds }
+      }
+    });
+  }
+
+  revalidatePath('/');
+}
+
 export async function openCoordinationUntilDate(
   statusId: number, 
   currentCycleId: number, 
