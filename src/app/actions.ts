@@ -56,6 +56,15 @@ export async function addOperator(name: string) {
   return operator;
 }
 
+export async function updateOperator(id: number, name: string) {
+  const operator = await prisma.operator.update({
+    where: { id },
+    data: { name }
+  });
+  revalidatePath('/');
+  return operator;
+}
+
 export async function deleteOperator(id: number) {
   await prisma.operator.delete({ where: { id } });
   revalidatePath('/');

@@ -18,7 +18,7 @@ type Zone = {
 
 export default function CollisionWarnings({ flights, zones }: { flights: Flight[], zones: Zone[] }) {
   // Find collisions
-  const activeFlights = flights.filter(f => f.coordination !== 'Anulada');
+  const activeFlights = flights.filter(f => !['Anulada', 'Finalizada'].includes(f.coordination));
   const collisions: { f1: Flight, f2: Flight, zone: Zone }[] = [];
 
   for (let i = 0; i < activeFlights.length; i++) {
