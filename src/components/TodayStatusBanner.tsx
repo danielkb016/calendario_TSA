@@ -16,7 +16,7 @@ type Flight = {
 
 interface TodayStatusBannerProps {
   flights: Flight[];
-  zones: { id: number; name: string }[];
+  zones: { id: number; name: string; calendarName?: string }[];
   onEditFlight: (flight: Flight) => void;
 }
 
@@ -77,12 +77,19 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight }: Toda
                   className={styles.cardHeader}
                   onClick={() => onEditFlight(flight)}
                   title="Haga clic para editar la coordinación general"
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}
                 >
-                  <span className={styles.zoneBadge}>🏔️ {zone?.name || 'Zona desconocida'}</span>
-                  <span className={`${styles.statusBadge} ${styles[flight.coordination.toLowerCase()] || ''}`}>
-                    {flight.coordination}
-                  </span>
+                  {zone?.calendarName && (
+                    <span style={{ fontSize: '0.8rem', color: '#a0aec0', fontWeight: 600, textTransform: 'uppercase' }}>
+                      {zone.calendarName}
+                    </span>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <span className={styles.zoneBadge}>🏔️ {zone?.name || 'Zona desconocida'}</span>
+                    <span className={`${styles.statusBadge} ${styles[flight.coordination.toLowerCase()] || ''}`}>
+                      {flight.coordination}
+                    </span>
+                  </div>
                 </div>
                 <div className={styles.cardBody}>
 

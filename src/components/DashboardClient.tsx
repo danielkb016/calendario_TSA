@@ -65,10 +65,10 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
   const [globalEditingFlight, setGlobalEditingFlight] = useState<Flight | null>(null);
 
   const allZones = useMemo(() => {
-    const zones: Zone[] = [];
+    const zones: (Zone & { calendarName?: string })[] = [];
     initialCalendars.forEach(cal => {
       cal.zones.forEach(zone => {
-        zones.push(zone);
+        zones.push({ ...zone, calendarName: cal.title });
       });
     });
     return zones;
