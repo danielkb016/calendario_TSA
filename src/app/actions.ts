@@ -140,6 +140,24 @@ export async function getFlights(calendarId: number) {
     orderBy: { startDate: 'asc' }
   });
 }
+
+export async function getTodayFlights() {
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+  return await prisma.flight.findMany({
+    where: {
+      startDate: { lte: endOfToday },
+      endDate: { gte: startOfToday },
+      coordination: {
+        notIn: ['Anulada', 'Finalizada']
+      }
+    },
+    include: { zone: true },
+    orderBy: { startDate: 'asc' }
+  });
+}
 // -- Call Targets --
 export async function updateCalendarLock(id: number, isLocked: boolean, lockReason: string | null) {
   const cal = await prisma.calendar.update({

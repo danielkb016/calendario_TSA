@@ -6,7 +6,6 @@ import { getFlights, deleteFlight } from '@/app/actions';
 import FlightModal from './FlightModal';
 import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
-import TodayStatusBanner from './TodayStatusBanner';
 import styles from './GanttView.module.css';
 
 type Flight = {
@@ -188,16 +187,6 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
       {expiringPermits.length > 0 && (
         <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fbbf24', color: '#b45309', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
           ⚠️ Los siguientes permisos caducan pronto: {expiringPermits.map(p => `${p.name} (${new Date(p.expirationDate).toLocaleDateString()})`).join(', ')}.
-        </div>
-      )}
-
-      {calendar.requiresDailyCoordination && (
-        <div className={styles.todayBannerContainer}>
-          <TodayStatusBanner 
-            flights={flights} 
-            zones={calendar.zones} 
-            onEditFlight={setEditingFlight}
-          />
         </div>
       )}
 

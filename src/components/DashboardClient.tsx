@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import CalendarCreator from './CalendarCreator';
 import GanttView from './GanttView';
 import CalendarSettingsModal from './CalendarSettingsModal';
+import TodayStatusBanner from './TodayStatusBanner';
+import FlightModal from './FlightModal';
 import styles from './DashboardClient.module.css';
 import { deleteCalendar } from '@/app/actions';
 
@@ -42,7 +44,17 @@ type Calendar = {
   globalPermits: GlobalPermit[];
 };
 
-export default function DashboardClient({ initialCalendars, globalOperators }: { initialCalendars: Calendar[], globalOperators: Operator[] }) {
+type Flight = {
+  id: number;
+  operator: string;
+  startDate: Date;
+  endDate: Date;
+  coordination: string;
+  situation: string | null;
+  zoneId: number;
+};
+
+export default function DashboardClient({ initialCalendars, globalOperators, todayFlights = [] }: { initialCalendars: Calendar[], globalOperators: Operator[], todayFlights?: Flight[] }) {
   const router = useRouter();
   const [activeCalendarId, setActiveCalendarId] = useState<number | null>(
     initialCalendars.length > 0 ? initialCalendars[0].id : null
@@ -50,6 +62,17 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
   const [isCreating, setIsCreating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [globalEditingFlight, setGlobalEditingFlight] = useState<Flight | null>(null);
+
+  const allZones = useMemo(() => {
+    const zones: Zone[] = [];
+    initialCalendars.forEach(cal => {
+      cal.zones.forEach(zone => {
+        zones.push(zone);
+      });
+    });
+    return zones;
+  }, [initialCalendars]);
 
   // Auto-refresh every 5 minutes (300,000 ms) to keep daily coordinations updated
   useEffect(() => {
@@ -104,6 +127,14 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
 
   return (
     <div className={styles.dashboard}>
+      <div style={{ marginBottom: '1rem' }}>
+        <TodayStatusBanner 
+          flights={todayFlights} 
+          zones={allZones} 
+          onEditFlight={setGlobalEditingFlight} 
+        />
+      </div>
+      
       <div className={styles.tabs}>
         {initialCalendars.map(cal => {
           const isActive = activeCalendarId === cal.id;
@@ -176,6 +207,20 @@ export default function DashboardClient({ initialCalendars, globalOperators }: {
             Crear Calendario
           </button>
         </div>
+      )}
+
+      {globalEditingFlight !== null && (
+        <FlightModal 
+          calendarId={initialCalendars.find(c => c.zones.some(z => z.id === globalEditingFlight.zoneId))?.id || 0}
+          zones={allZones}
+          initialZoneId={globalEditingFlight.zoneId}
+          initialDate={new Date(globalEditingFlight.startDate)}
+          editingFlight={globalEditingFlight}
+          onClose={(refresh) => {
+            setGlobalEditingFlight(null);
+            if (refresh) router.refresh();
+          }}
+        />
       )}
     </div>
   );
