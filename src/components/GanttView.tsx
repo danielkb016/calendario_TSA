@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getFlights, deleteFlight } from '@/app/actions';
+import { getFlights, deleteFlight, getAllFlights } from '@/app/actions';
 import FlightModal from './FlightModal';
 import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
@@ -31,10 +31,11 @@ type Calendar = {
   zones: { 
     id: number; 
     name: string;
+    calendarName?: string;
   }[];
 };
 
-export default function GanttView({ calendar, operators }: { calendar: Calendar, operators: Operator[] }) {
+export default function GanttView({ calendar, operators, isAllMode }: { calendar: Calendar, operators: Operator[], isAllMode?: boolean }) {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
@@ -45,7 +46,9 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
   const fetchFlights = async () => {
     setLoading(true);
     try {
-      const data = await getFlights(calendar.id);
+      const data = isAllMode 
+        ? await getAllFlights()
+        : await getFlights(calendar.id);
       setFlights(data);
     } catch (e) {
       console.error("Failed to load flights", e);
@@ -229,13 +232,17 @@ export default function GanttView({ calendar, operators }: { calendar: Calendar,
             );
           })}
 
-          {/* Zones and Grid */}
           {calendar.zones.map(zone => {
             return (
             <React.Fragment key={zone.id}>
               <div className={styles.zoneCell}>
                 <div className={styles.zoneIcon}>🏔️</div>
                 <div className={styles.zoneName}>
+                  {isAllMode && zone.calendarName && (
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.2rem', fontWeight: 'bold' }}>
+                      {zone.calendarName}
+                    </div>
+                  )}
                   {zone.name}
                 </div>
               </div>

@@ -18,9 +18,10 @@ interface TodayStatusBannerProps {
   flights: Flight[];
   zones: { id: number; name: string; calendarName?: string }[];
   onEditFlight: (flight: Flight) => void;
+  showCalendarName?: boolean;
 }
 
-export default function TodayStatusBanner({ flights, zones, onEditFlight }: TodayStatusBannerProps) {
+export default function TodayStatusBanner({ flights, zones, onEditFlight, showCalendarName = true }: TodayStatusBannerProps) {
 
   // Get start and end of today in local time
   const today = new Date();
@@ -48,8 +49,8 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight }: Toda
       <div className={`${styles.banner} ${styles.greenBanner}`}>
         <div className={styles.icon}>🟢</div>
         <div className={styles.content}>
-          <h4 className={styles.title}>Espacio Aéreo Libre</h4>
-          <p className={styles.description}>No hay coordinaciones programadas para el día de hoy. ¡Libre para volar!</p>
+          <h4 className={styles.title} style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>Espacio Aéreo Libre</h4>
+          <p className={styles.description} style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>No hay coordinaciones programadas para el día de hoy. ¡Libre para volar!</p>
         </div>
       </div>
     );
@@ -59,8 +60,8 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight }: Toda
     <div className={`${styles.banner} ${styles.yellowBanner}`}>
       <div className={styles.icon}>⚠️</div>
       <div className={styles.content}>
-        <h4 className={styles.title}>Coordinaciones Activas para Hoy</h4>
-        <p className={styles.description}>
+        <h4 className={styles.title} style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>Coordinaciones Activas para Hoy</h4>
+        <p className={styles.description} style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
           Hay {todayFlights.length} {todayFlights.length === 1 ? 'coordinación' : 'coordinaciones'} programadas para hoy. Revisa los horarios y zonas antes de realizar operaciones:
         </p>
         <div className={styles.grid}>
@@ -79,7 +80,7 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight }: Toda
                   title="Haga clic para editar la coordinación general"
                   style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}
                 >
-                  {zone?.calendarName && (
+                  {showCalendarName && zone?.calendarName && (
                     <span style={{ fontSize: '0.8rem', color: '#a0aec0', fontWeight: 600, textTransform: 'uppercase' }}>
                       {zone.calendarName}
                     </span>

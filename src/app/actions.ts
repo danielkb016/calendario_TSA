@@ -141,6 +141,13 @@ export async function getFlights(calendarId: number) {
   });
 }
 
+export async function getAllFlights() {
+  return await prisma.flight.findMany({
+    include: { zone: true },
+    orderBy: { startDate: 'asc' }
+  });
+}
+
 export async function getTodayFlights() {
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);

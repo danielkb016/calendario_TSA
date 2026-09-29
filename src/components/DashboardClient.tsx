@@ -56,8 +56,8 @@ type Flight = {
 
 export default function DashboardClient({ initialCalendars, globalOperators, todayFlights = [] }: { initialCalendars: Calendar[], globalOperators: Operator[], todayFlights?: Flight[] }) {
   const router = useRouter();
-  const [activeCalendarId, setActiveCalendarId] = useState<number | null>(
-    initialCalendars.length > 0 ? initialCalendars[0].id : null
+  const [activeCalendarId, setActiveCalendarId] = useState<number | 'all'>(
+    'all'
   );
   const [isCreating, setIsCreating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -73,6 +73,26 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
     });
     return zones;
   }, [initialCalendars]);
+
+  // We determine what calendar(s) to show in GanttView.
+  // If 'all', we combine all calendars into a "virtual" calendar to pass to GanttView.
+  const virtualAllCalendar = useMemo(() => {
+    if (activeCalendarId !== 'all') return null;
+    return {
+      id: 0,
+      title: 'Todos',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      requiresDailyCoordination: false,
+      zones: allZones,
+      callTargets: [],
+      globalPermits: []
+    } as Calendar;
+  }, [activeCalendarId, allZones]);
+
+  const activeCalendar = activeCalendarId === 'all' 
+    ? virtualAllCalendar 
+    : initialCalendars.find(c => c.id === activeCalendarId);
 
   // Auto-refresh every 5 minutes (300,000 ms) to keep daily coordinations updated
   useEffect(() => {
@@ -105,8 +125,6 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
     };
   }, []);
 
-  const activeCalendar = initialCalendars.find(c => c.id === activeCalendarId);
-
   const handleDelete = async (id: number, title: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm(`¿Estás seguro de que quieres eliminar el calendario "${title}" y todas sus zonas y coordinaciones asociadas?`)) {
@@ -116,7 +134,7 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
         if (remaining.length > 0) {
           setActiveCalendarId(remaining[0].id);
         } else {
-          setActiveCalendarId(null);
+          setActiveCalendarId('all');
         }
       } catch (err) {
         console.error(err);
@@ -130,12 +148,19 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
       <div style={{ marginBottom: '1rem' }}>
         <TodayStatusBanner 
           flights={todayFlights} 
-          zones={allZones} 
+          zones={activeCalendarId === 'all' ? allZones : (activeCalendar?.zones || [])} 
           onEditFlight={setGlobalEditingFlight} 
+          showCalendarName={activeCalendarId === 'all'}
         />
       </div>
       
       <div className={styles.tabs}>
+        <div
+          className={`${styles.tabWrapper} ${activeCalendarId === 'all' ? styles.activeTabWrapper : ''}`}
+          onClick={() => setActiveCalendarId('all')}
+        >
+          <span className={styles.tabTitle}>Todos</span>
+        </div>
         {initialCalendars.map(cal => {
           const isActive = activeCalendarId === cal.id;
 
@@ -182,7 +207,7 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
         </button>
       </div>
 
-      {isSettingsOpen && activeCalendar && (
+      {isSettingsOpen && activeCalendar && activeCalendarId !== 'all' && (
         <CalendarSettingsModal 
           calendar={activeCalendar}
           onClose={() => setIsSettingsOpen(false)}
@@ -196,7 +221,7 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
           setActiveCalendarId(id);
         }} onCancel={() => setIsCreating(false)} />
       ) : activeCalendar ? (
-        <GanttView calendar={activeCalendar} operators={globalOperators} />
+        <GanttView calendar={activeCalendar} operators={globalOperators} isAllMode={activeCalendarId === 'all'} />
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <h2>No hay calendarios</h2>

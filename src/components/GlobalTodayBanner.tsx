@@ -274,9 +274,6 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
         )}
         
         <h5 className={styles.title}>Coordinaciones Operacionales Diarias (Global)</h5>
-        <p className={styles.description}>
-          Resumen de ubicaciones y sitios a los que hay que llamar para el día seleccionado.
-        </p>
 
         {isHistorical && (
           <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, marginTop: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
@@ -302,8 +299,37 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
           ))}
         </div>
 
-        <div className={styles.datePill}>
-          <span>📅</span>
+        <div className={styles.datePill} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button 
+            className={styles.actionBtn} 
+            style={{ padding: '0.2rem 0.5rem' }}
+            onClick={() => {
+              const d = new Date(selectedDateStr);
+              d.setDate(d.getDate() - 1);
+              window.location.href = `/?date=${d.toISOString().split('T')[0]}`;
+            }}
+          >
+            &larr; Anterior
+          </button>
+          <button 
+            className={styles.actionBtn} 
+            style={{ padding: '0.2rem 0.5rem' }}
+            onClick={() => window.location.href = `/`}
+          >
+            Hoy
+          </button>
+          <button 
+            className={styles.actionBtn} 
+            style={{ padding: '0.2rem 0.5rem' }}
+            onClick={() => {
+              const d = new Date(selectedDateStr);
+              d.setDate(d.getDate() + 1);
+              window.location.href = `/?date=${d.toISOString().split('T')[0]}`;
+            }}
+          >
+            Siguiente &rarr;
+          </button>
+          <span style={{ marginLeft: '0.5rem' }}>📅</span>
           <input 
             type="date" 
             value={currentDateIso || todayStr}
