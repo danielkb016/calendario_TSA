@@ -262,6 +262,76 @@ export async function deleteDailyCallCycle(id: number) {
   revalidatePath('/');
 }
 
+export async function openCoordinationUntilDate(
+  statusId: number, 
+  currentCycleId: number, 
+  untilDateStr: string, 
+  user: string, 
+  notes: string | null
+) {
+  // 1. Update current cycle and status
+  await prisma.dailyCallCycle.update({
+    where: { id: currentCycleId },
+    data: { opened: true, openedBy: user, openedAt: new Date() }
+  });
+  if (notes !== null) {
+    await prisma.dailyCallStatus.update({
+      where: { id: statusId },
+      data: { notes }
+    });
+  }
+
+  // 2. Fetch current status to get callTargetId and base date
+  const currentStatus = await prisma.dailyCallStatus.findUnique({
+    where: { id: statusId }
+  });
+  
+  if (!currentStatus) return;
+
+  const untilDate = new Date(untilDateStr);
+  untilDate.setHours(0, 0, 0, 0); // ensure we compare start of day
+  let iterDate = new Date(currentStatus.date);
+  iterDate.setDate(iterDate.getDate() + 1);
+  iterDate.setHours(0, 0, 0, 0);
+
+  // 3. Loop until untilDate
+  while (iterDate <= untilDate) {
+    const iterDateStartOfDay = new Date(iterDate.getTime());
+    
+    // upsert daily call status
+    const status = await prisma.dailyCallStatus.upsert({
+      where: {
+        callTargetId_date: {
+          callTargetId: currentStatus.callTargetId,
+          date: iterDateStartOfDay
+        }
+      },
+      update: {
+        notes: notes
+      },
+      create: {
+        callTargetId: currentStatus.callTargetId,
+        date: iterDateStartOfDay,
+        notes: notes
+      }
+    });
+
+    // create a cycle for it that is already open
+    await prisma.dailyCallCycle.create({
+      data: {
+        dailyCallStatusId: status.id,
+        opened: true,
+        openedBy: user,
+        openedAt: new Date() // recorded as opened at the current real-world time
+      }
+    });
+
+    iterDate.setDate(iterDate.getDate() + 1);
+  }
+  
+  revalidatePath('/');
+}
+
 export async function createFlight(data: {
   operator: string;
   startDate: Date;

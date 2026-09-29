@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateDailyCallStatus, updateDailyCallCycle, createDailyCallCycle, deleteDailyCallCycle } from '@/app/actions';
+import { updateDailyCallStatus, updateDailyCallCycle, createDailyCallCycle, deleteDailyCallCycle, openCoordinationUntilDate } from '@/app/actions';
 import styles from './OpCoordinationModal.module.css';
 
 type Operator = { id: number; name: string; };
@@ -49,6 +49,8 @@ export default function OpCoordinationModal({
   const [selectedUser, setSelectedUser] = useState('');
   const [customUser, setCustomUser] = useState('');
   const [notes, setNotes] = useState(status.notes || '');
+  const [keepOpen, setKeepOpen] = useState(false);
+  const [untilDate, setUntilDate] = useState('');
 
   const existingCycle = cycleId ? status.cycles?.find(c => c.id === cycleId) : null;
 
@@ -69,11 +71,15 @@ export default function OpCoordinationModal({
       if (!targetCycleId) return;
 
       if (action === 'open') {
-        await updateDailyCallCycle(targetCycleId, {
-          opened: true,
-          openedBy: user,
-          openedAt: new Date(),
-        });
+        if (keepOpen && untilDate) {
+          await openCoordinationUntilDate(status.id, targetCycleId, untilDate, user, notes);
+        } else {
+          await updateDailyCallCycle(targetCycleId, {
+            opened: true,
+            openedBy: user,
+            openedAt: new Date(),
+          });
+        }
       } else if (action === 'close') {
         await updateDailyCallCycle(targetCycleId, {
           closed: true,
@@ -215,12 +221,30 @@ export default function OpCoordinationModal({
                 />
               )}
 
+              {(status.callTarget?.requiresOpening ?? true) && (!existingCycle || !existingCycle.opened) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                    <input type="checkbox" checked={keepOpen} onChange={e => setKeepOpen(e.target.checked)} />
+                    Mantener abierta hasta un día determinado
+                  </label>
+                  {keepOpen && (
+                    <input 
+                      type="date" 
+                      value={untilDate}
+                      onChange={e => setUntilDate(e.target.value)}
+                      className={styles.input}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  )}
+                </div>
+              )}
+
               <div className={styles.buttons}>
                 {(status.callTarget?.requiresOpening ?? true) && (!existingCycle || !existingCycle.opened) && (
                   <button 
                     className={`${styles.btn} ${styles.btnOpen}`}
                     onClick={() => handleAction('open')}
-                    disabled={loading || !selectedUser || (selectedUser === 'Otro' && !customUser.trim())}
+                    disabled={loading || !selectedUser || (selectedUser === 'Otro' && !customUser.trim()) || (keepOpen && !untilDate)}
                   >
                     Marcar como ABIERTO
                   </button>
