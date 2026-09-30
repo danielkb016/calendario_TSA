@@ -63,7 +63,7 @@ function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, l
   let rainTextClass = '';
   let tempTextClass = '';
 
-  const isRainAlert = weather.rainProb >= limits.rain;
+  const isRainAlert = weather.code >= 51 || weather.rainProb >= limits.rain;
   const isWindRed = weather.windSpeed >= limits.windRed;
   const isWindYellow = weather.windSpeed >= limits.windYellow && weather.windSpeed < limits.windRed;
   const isTempAlert = weather.temp >= limits.tempMax;
@@ -98,6 +98,11 @@ function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, l
             <span>☔</span> {weather.rainProb}%
           </div>
         </div>
+        {weather.code >= 51 && (
+          <div style={{ fontSize: '0.75rem', color: '#ef4444', textAlign: 'center', fontWeight: 'bold', animation: 'blinkTextRed 1s infinite' }}>
+            ⚠️ Lluvia detectada ahora
+          </div>
+        )}
       </div>
 
       {showSettings && (

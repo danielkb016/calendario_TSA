@@ -292,9 +292,10 @@
   color: #fff;
 }
 
-/* WEATHER BADGE */
 .weatherBadge {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   align-items: center;
   padding: 0.5rem 0.75rem;
   margin-top: 1rem;
