@@ -63,7 +63,7 @@ function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, l
   let rainTextClass = '';
   let tempTextClass = '';
 
-  const isRainAlert = weather.code >= 51 || weather.rainProb >= limits.rain;
+  const isRainAlert = weather.rainProb >= limits.rain;
   const isWindRed = weather.windSpeed >= limits.windRed;
   const isWindYellow = weather.windSpeed >= limits.windYellow && weather.windSpeed < limits.windRed;
   const isTempAlert = weather.temp >= limits.tempMax;
