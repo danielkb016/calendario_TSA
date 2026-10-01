@@ -273,9 +273,11 @@ export default function GlobalTodayBanner({
   const selectedDate = currentDateIso ? new Date(currentDateIso) : new Date();
 
   return (
-    <div className={styles.banner} style={{ margin: '1rem', marginTop: 0 }}>
-      <div className={styles.headerContent} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1.5rem' }}>
-        <div className={styles.datePill} style={{ position: 'relative', top: 'auto', left: 'auto' }}>
+    <div style={{ margin: '1rem', marginTop: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      
+      {/* Barra superior de controles de fecha (FUERA del banner) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+        <div className={styles.datePill} style={{ position: 'relative', top: 'auto', left: 'auto', margin: 0 }}>
           <button 
             className={styles.actionBtn} 
             style={{ padding: '0.2rem 0.5rem' }}
@@ -314,21 +316,22 @@ export default function GlobalTodayBanner({
         </div>
 
         {isHistorical && (
-          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)', margin: '0 1rem' }}>
-            ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </div>
-        )}
-        
-        {lastRefreshed && (
-          <div style={{ fontSize: '0.65rem', color: '#64748b', textAlign: 'right' }}>
-            Actualizado:<br/>{lastRefreshed.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)', backdropFilter: 'blur(4px)' }}>
+            ⚠️ Visualizando Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
         )}
       </div>
 
+      {/* Banner de las operaciones */}
+      <div className={styles.banner}>
+        
+        {lastRefreshed && (
+          <div style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '0.65rem', color: '#64748b', textAlign: 'right' }}>
+            Actualizado:<br/>{lastRefreshed.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
 
-
-      <div className={styles.grid}>
+        <div className={styles.grid}>
           {filteredCoordinations.map(coord => {
             const isLocked = !!coord.calendar.isLocked;
             const lockReason = coord.calendar.lockReason;
@@ -498,6 +501,8 @@ export default function GlobalTodayBanner({
             );
           })}
         </div>
+      </div>
+      
       {quickActionStatus && (
         <OpCoordinationModal 
           status={quickActionStatus.status}
