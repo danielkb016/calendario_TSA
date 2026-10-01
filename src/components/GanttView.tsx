@@ -35,7 +35,7 @@ type Calendar = {
   }[];
 };
 
-export default function GanttView({ calendar, operators, isAllMode }: { calendar: Calendar, operators: Operator[], isAllMode?: boolean }) {
+export default function GanttView({ calendar, operators, isAllMode, currentDateIso }: { calendar: Calendar, operators: Operator[], isAllMode?: boolean, currentDateIso?: string }) {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
@@ -63,10 +63,16 @@ export default function GanttView({ calendar, operators, isAllMode }: { calendar
 
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [referenceDate, setReferenceDate] = useState<Date>(() => {
-    const d = new Date();
+    const d = currentDateIso ? new Date(currentDateIso) : new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   });
+
+  useEffect(() => {
+    const d = currentDateIso ? new Date(currentDateIso) : new Date();
+    d.setHours(0, 0, 0, 0);
+    setReferenceDate(d);
+  }, [currentDateIso]);
 
   // Calculate start and end date based on viewMode and referenceDate
   let minDate = new Date(referenceDate);
@@ -199,6 +205,11 @@ export default function GanttView({ calendar, operators, isAllMode }: { calendar
           <button className="btn" style={{ border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem' }} onClick={handleToday}>Hoy</button>
           <button className="btn" style={{ border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem' }} onClick={handleNext}>Siguiente &rarr;</button>
           <span className={styles.dateLabel}>{getHeaderLabel()}</span>
+          {currentDateIso && currentDateIso !== new Date().toISOString().split('T')[0] && (
+            <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: '1rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+              ⚠️ Histórico
+            </span>
+          )}
         </div>
 
         <div className={styles.viewToggle}>
@@ -224,9 +235,18 @@ export default function GanttView({ calendar, operators, isAllMode }: { calendar
           {/* Header Row */}
           <div className={`${styles.headerCell} ${styles.zoneHeader}`}>ZONAS DE VUELO</div>
           {days.map((day, i) => {
-            const isToday = day.toDateString() === new Date().toDateString();
+            const realTodayStr = new Date().toDateString();
+            const selectedDateStr = currentDateIso ? new Date(currentDateIso).toDateString() : realTodayStr;
+            
+            const isRealToday = day.toDateString() === realTodayStr;
+            const isSelected = day.toDateString() === selectedDateStr;
+            
+            let highlightClass = '';
+            if (isRealToday) highlightClass = styles.todayHeader;
+            else if (isSelected) highlightClass = styles.selectedHeader;
+
             return (
-              <div key={i} className={`${styles.headerCell} ${isToday ? styles.todayHeader : ''}`}>
+              <div key={i} className={`${styles.headerCell} ${highlightClass}`}>
                 {day.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
               </div>
             );
@@ -248,7 +268,15 @@ export default function GanttView({ calendar, operators, isAllMode }: { calendar
               </div>
               
               {days.map((day, i) => {
-                const isToday = day.toDateString() === new Date().toDateString();
+                const realTodayStr = new Date().toDateString();
+                const selectedDateStr = currentDateIso ? new Date(currentDateIso).toDateString() : realTodayStr;
+                
+                const isRealToday = day.toDateString() === realTodayStr;
+                const isSelected = day.toDateString() === selectedDateStr;
+                
+                let highlightClass = '';
+                if (isRealToday) highlightClass = styles.todayColumn;
+                else if (isSelected) highlightClass = styles.selectedColumn;
                 
                 // Find flights for this zone and day
                 const dayFlights = flights.filter(f => 
@@ -258,7 +286,7 @@ export default function GanttView({ calendar, operators, isAllMode }: { calendar
                 );
 
                 return (
-                  <div key={i} className={`${styles.dayCell} ${isToday ? styles.todayColumn : ''}`} onClick={() => handleCellClick(zone.id, day)}>
+                  <div key={i} className={`${styles.dayCell} ${highlightClass}`} onClick={() => handleCellClick(zone.id, day)}>
                     {dayFlights.map(flight => (
                       <div 
                         key={flight.id} 

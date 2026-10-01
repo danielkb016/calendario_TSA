@@ -208,22 +208,25 @@ interface GlobalTodayBannerProps {
   lastRefreshed?: Date;
   currentDateIso?: string;
   fullCalendars?: FullCalendar[];
+  selectedCalendarIds?: number[] | 'all';
 }
 
-export default function GlobalTodayBanner({ coordinations, operators, lastRefreshed, currentDateIso, fullCalendars }: GlobalTodayBannerProps) {
+export default function GlobalTodayBanner({ 
+  coordinations, 
+  operators, 
+  lastRefreshed, 
+  currentDateIso, 
+  fullCalendars,
+  selectedCalendarIds = 'all'
+}: GlobalTodayBannerProps) {
   const router = useRouter();
   const [quickActionStatus, setQuickActionStatus] = useState<{ status: DailyCallStatus, cycleId?: number } | null>(null);
-  const [selectedCalendarId, setSelectedCalendarId] = useState<string>('all');
   const [expandedNotes, setExpandedNotes] = useState<Record<number, boolean>>({});
   const [editingCalendarId, setEditingCalendarId] = useState<number | null>(null);
 
-  // Always render the banner so the UI doesn't disappear when empty.
-  // if (coordinations.length === 0) {
-  //   return null; 
-  // }
-  const filteredCoordinations = selectedCalendarId === 'all' 
+  const filteredCoordinations = selectedCalendarIds === 'all' 
     ? coordinations 
-    : coordinations.filter(c => c.calendar.id.toString() === selectedCalendarId);
+    : coordinations.filter(c => selectedCalendarIds.includes(c.calendar.id));
 
   const toggleNote = (targetId: number) => {
     setExpandedNotes(prev => ({ ...prev, [targetId]: !prev[targetId] }));
@@ -271,40 +274,8 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
 
   return (
     <div className={styles.banner} style={{ margin: '1rem', marginTop: 0 }}>
-      <div className={styles.headerContent}>
-        {lastRefreshed && (
-          <div style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', fontSize: '0.65rem', color: '#64748b' }}>
-            Actualizado: {lastRefreshed.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-          </div>
-        )}
-        
-        <h5 className={styles.title}>Coordinaciones Operacionales Diarias (Global)</h5>
-
-        {isHistorical && (
-          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, marginTop: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-            ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </div>
-        )}
-
-        <div className={styles.tabsContainer}>
-          <button
-            onClick={() => setSelectedCalendarId('all')}
-            className={`${styles.tabBtn} ${selectedCalendarId === 'all' ? styles.activeTab : ''}`}
-          >
-            Todas
-          </button>
-          {coordinations.map(c => (
-            <button
-              key={c.calendar.id}
-              onClick={() => setSelectedCalendarId(c.calendar.id.toString())}
-              className={`${styles.tabBtn} ${selectedCalendarId === c.calendar.id.toString() ? styles.activeTab : ''}`}
-            >
-              {c.calendar.title}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.datePill} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      <div className={styles.headerContent} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1.5rem' }}>
+        <div className={styles.datePill} style={{ position: 'relative', top: 'auto', left: 'auto' }}>
           <button 
             className={styles.actionBtn} 
             style={{ padding: '0.2rem 0.5rem' }}
@@ -341,7 +312,21 @@ export default function GlobalTodayBanner({ coordinations, operators, lastRefres
             onChange={handleDateChange}
           />
         </div>
+
+        {isHistorical && (
+          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)', margin: '0 1rem' }}>
+            ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+        )}
+        
+        {lastRefreshed && (
+          <div style={{ fontSize: '0.65rem', color: '#64748b', textAlign: 'right' }}>
+            Actualizado:<br/>{lastRefreshed.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
       </div>
+
+
 
       <div className={styles.grid}>
           {filteredCoordinations.map(coord => {

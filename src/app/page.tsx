@@ -13,7 +13,7 @@ export default async function Home(props: { searchParams: Promise<{ date?: strin
   const operators = await getOperators();
   const globalCoordinations = await getGlobalCoordinationsForDate(searchParams?.date);
   const externalLinks = await getExternalWebLinks();
-  const todayFlights = await getTodayFlights();
+  const todayFlights = await getTodayFlights(searchParams?.date);
 
   return (
     <main className={styles.main}>
@@ -33,8 +33,13 @@ export default async function Home(props: { searchParams: Promise<{ date?: strin
         </div>
       </header>
 
-      <GlobalTodayBanner coordinations={globalCoordinations} operators={operators} lastRefreshed={new Date()} currentDateIso={searchParams?.date} fullCalendars={calendars} />
-      <DashboardClient initialCalendars={calendars} globalOperators={operators} todayFlights={todayFlights} />
+      <DashboardClient 
+        initialCalendars={calendars} 
+        globalOperators={operators} 
+        todayFlights={todayFlights} 
+        globalCoordinations={globalCoordinations}
+        currentDateIso={searchParams?.date}
+      />
     </main>
   );
 }

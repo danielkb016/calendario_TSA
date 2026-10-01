@@ -6,6 +6,7 @@ import CalendarCreator from './CalendarCreator';
 import GanttView from './GanttView';
 import CalendarSettingsModal from './CalendarSettingsModal';
 import TodayStatusBanner from './TodayStatusBanner';
+import GlobalTodayBanner from './GlobalTodayBanner';
 import FlightModal from './FlightModal';
 import styles from './DashboardClient.module.css';
 import { deleteCalendar } from '@/app/actions';
@@ -54,11 +55,21 @@ type Flight = {
   zoneId: number;
 };
 
-export default function DashboardClient({ initialCalendars, globalOperators, todayFlights = [] }: { initialCalendars: Calendar[], globalOperators: Operator[], todayFlights?: Flight[] }) {
+export default function DashboardClient({ 
+  initialCalendars, 
+  globalOperators, 
+  todayFlights = [],
+  globalCoordinations,
+  currentDateIso
+}: { 
+  initialCalendars: Calendar[], 
+  globalOperators: Operator[], 
+  todayFlights?: Flight[],
+  globalCoordinations: any[],
+  currentDateIso?: string
+}) {
   const router = useRouter();
-  const [activeCalendarId, setActiveCalendarId] = useState<number | 'all'>(
-    'all'
-  );
+  const [activeCalendarIds, setActiveCalendarIds] = useState<Set<number> | 'all'>('all');
   const [isCreating, setIsCreating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
@@ -74,25 +85,64 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
     return zones;
   }, [initialCalendars]);
 
-  // We determine what calendar(s) to show in GanttView.
-  // If 'all', we combine all calendars into a "virtual" calendar to pass to GanttView.
-  const virtualAllCalendar = useMemo(() => {
-    if (activeCalendarId !== 'all') return null;
+  const activeCalendars = useMemo(() => {
+    if (activeCalendarIds === 'all') return initialCalendars;
+    return initialCalendars.filter(c => activeCalendarIds.has(c.id));
+  }, [initialCalendars, activeCalendarIds]);
+
+  const activeZones = useMemo(() => {
+    const zones: (Zone & { calendarName?: string })[] = [];
+    activeCalendars.forEach(cal => {
+      cal.zones.forEach(zone => {
+        zones.push({ ...zone, calendarName: cal.title });
+      });
+    });
+    return zones;
+  }, [activeCalendars]);
+
+  const virtualCalendar = useMemo(() => {
+    if (activeCalendars.length === 1 && activeCalendarIds !== 'all') {
+      return activeCalendars[0];
+    }
     return {
       id: 0,
-      title: 'Todos',
+      title: activeCalendarIds === 'all' ? 'Todos' : 'Varios Seleccionados',
       createdAt: new Date(),
       updatedAt: new Date(),
       requiresDailyCoordination: false,
-      zones: allZones,
+      zones: activeZones,
       callTargets: [],
       globalPermits: []
     } as Calendar;
-  }, [activeCalendarId, allZones]);
+  }, [activeCalendars, activeCalendarIds, activeZones]);
 
-  const activeCalendar = activeCalendarId === 'all' 
-    ? virtualAllCalendar 
-    : initialCalendars.find(c => c.id === activeCalendarId);
+  const activeCalendar = virtualCalendar;
+
+  const handleTabClick = (e: React.MouseEvent, calId: number | 'all') => {
+    if (calId === 'all') {
+      setActiveCalendarIds('all');
+      return;
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+      setActiveCalendarIds(prev => {
+        if (prev === 'all') {
+          return new Set([calId]);
+        }
+        const newSet = new Set(prev);
+        if (newSet.has(calId)) {
+          newSet.delete(calId);
+          if (newSet.size === 0) return 'all';
+          return newSet;
+        } else {
+          newSet.add(calId);
+          return newSet;
+        }
+      });
+    } else {
+      setActiveCalendarIds(new Set([calId]));
+    }
+  };
 
   // Auto-refresh every 5 minutes (300,000 ms) to keep daily coordinations updated
   useEffect(() => {
@@ -132,9 +182,9 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
         await deleteCalendar(id);
         const remaining = initialCalendars.filter(c => c.id !== id);
         if (remaining.length > 0) {
-          setActiveCalendarId(remaining[0].id);
+          setActiveCalendarIds(new Set([remaining[0].id]));
         } else {
-          setActiveCalendarId('all');
+          setActiveCalendarIds('all');
         }
       } catch (err) {
         console.error(err);
@@ -145,30 +195,21 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
 
   return (
     <div className={styles.dashboard}>
-      <div style={{ marginBottom: '1rem' }}>
-        <TodayStatusBanner 
-          flights={todayFlights} 
-          zones={activeCalendarId === 'all' ? allZones : (activeCalendar?.zones || [])} 
-          onEditFlight={setGlobalEditingFlight} 
-          showCalendarName={activeCalendarId === 'all'}
-        />
-      </div>
-      
-      <div className={styles.tabs}>
+      <div className={styles.tabs} style={{ marginBottom: '1rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem' }}>
         <div
-          className={`${styles.tabWrapper} ${activeCalendarId === 'all' ? styles.activeTabWrapper : ''}`}
-          onClick={() => setActiveCalendarId('all')}
+          className={`${styles.tabWrapper} ${activeCalendarIds === 'all' ? styles.activeTabWrapper : ''}`}
+          onClick={(e) => handleTabClick(e, 'all')}
         >
           <span className={styles.tabTitle}>Todos</span>
         </div>
         {initialCalendars.map(cal => {
-          const isActive = activeCalendarId === cal.id;
+          const isActive = activeCalendarIds === 'all' ? false : activeCalendarIds.has(cal.id);
 
           return (
             <div
               key={cal.id}
               className={`${styles.tabWrapper} ${isActive ? styles.activeTabWrapper : ''}`}
-              onClick={() => setActiveCalendarId(cal.id)}
+              onClick={(e) => handleTabClick(e, cal.id)}
             >
               {isActive ? (
                 <div className={styles.tabContent}>
@@ -180,14 +221,14 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
                         e.stopPropagation();
                         setIsSettingsOpen(true);
                       }}
-                      title="Ajustes del calendario"
+                      title="Ajustes de la ubicación"
                     >
                       ⚙️
                     </button>
                     <button 
                       className={styles.actionBtn} 
                       onClick={(e) => handleDelete(cal.id, cal.title, e)}
-                      title="Eliminar calendario"
+                      title="Eliminar ubicación"
                     >
                       🗑️
                     </button>
@@ -203,11 +244,30 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
           className={`${styles.tab} ${styles.addTab}`}
           onClick={() => setIsCreating(true)}
         >
-          + Nuevo Calendario
+          + Nueva Ubicación
         </button>
       </div>
 
-      {isSettingsOpen && activeCalendar && activeCalendarId !== 'all' && (
+      <GlobalTodayBanner 
+        coordinations={globalCoordinations} 
+        operators={globalOperators} 
+        lastRefreshed={lastRefreshed} 
+        currentDateIso={currentDateIso} 
+        fullCalendars={initialCalendars}
+        selectedCalendarIds={activeCalendarIds === 'all' ? 'all' : Array.from(activeCalendarIds)}
+      />
+
+      <div style={{ marginBottom: '1rem', marginTop: '1rem' }}>
+        <TodayStatusBanner 
+          flights={todayFlights} 
+          zones={activeZones} 
+          onEditFlight={setGlobalEditingFlight} 
+          showCalendarName={activeCalendarIds === 'all' || activeCalendarIds.size > 1}
+          currentDateIso={currentDateIso}
+        />
+      </div>
+
+      {isSettingsOpen && activeCalendar && activeCalendarIds !== 'all' && activeCalendarIds.size === 1 && (
         <CalendarSettingsModal 
           calendar={activeCalendar}
           onClose={() => setIsSettingsOpen(false)}
@@ -215,13 +275,13 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
         />
       )}
 
-      {isCreating ? (
-        <CalendarCreator onCreated={(id) => {
-          setIsCreating(false);
-          setActiveCalendarId(id);
-        }} onCancel={() => setIsCreating(false)} />
-      ) : activeCalendar ? (
-        <GanttView calendar={activeCalendar} operators={globalOperators} isAllMode={activeCalendarId === 'all'} />
+      {activeCalendar ? (
+        <GanttView 
+          calendar={activeCalendar} 
+          operators={globalOperators} 
+          isAllMode={activeCalendarIds === 'all' || activeCalendarIds.size > 1} 
+          currentDateIso={currentDateIso} 
+        />
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <h2>No hay calendarios</h2>
@@ -232,6 +292,13 @@ export default function DashboardClient({ initialCalendars, globalOperators, tod
             Crear Calendario
           </button>
         </div>
+      )}
+
+      {isCreating && (
+        <CalendarCreator onCreated={(id) => {
+          setIsCreating(false);
+          setActiveCalendarIds(new Set([id]));
+        }} onCancel={() => setIsCreating(false)} />
       )}
 
       {globalEditingFlight !== null && (

@@ -19,16 +19,19 @@ interface TodayStatusBannerProps {
   zones: { id: number; name: string; calendarName?: string }[];
   onEditFlight: (flight: Flight) => void;
   showCalendarName?: boolean;
+  currentDateIso?: string;
 }
 
-export default function TodayStatusBanner({ flights, zones, onEditFlight, showCalendarName = true }: TodayStatusBannerProps) {
+export default function TodayStatusBanner({ flights, zones, onEditFlight, showCalendarName = true, currentDateIso }: TodayStatusBannerProps) {
 
-  // Get start and end of today in local time
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
-  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  const selectedDate = currentDateIso ? new Date(currentDateIso) : new Date();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isHistorical = currentDateIso && currentDateIso !== todayStr;
 
-  // Filter active (non-cancelled) flights that overlap with today
+  const startOfToday = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0, 0);
+  const endOfToday = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999);
+
+  // Filter active (non-cancelled) flights that overlap with selected date
   const todayFlights = flights.filter(f => {
     if (f.coordination === 'Anulada') return false;
     const fStart = new Date(f.startDate);
@@ -47,10 +50,17 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight, showCa
   if (todayFlights.length === 0) {
     return (
       <div className={`${styles.banner} ${styles.greenBanner}`}>
+        {isHistorical && (
+          <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+            ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+        )}
         <div className={styles.icon}>🟢</div>
         <div className={styles.content}>
           <h4 className={styles.title} style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>Espacio Aéreo Libre</h4>
-          <p className={styles.description} style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>No hay coordinaciones programadas para el día de hoy. ¡Libre para volar!</p>
+          <p className={styles.description} style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+            {isHistorical ? 'No hubo coordinaciones programadas para este día.' : 'No hay coordinaciones programadas para el día de hoy. ¡Libre para volar!'}
+          </p>
         </div>
       </div>
     );
@@ -58,11 +68,18 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight, showCa
 
   return (
     <div className={`${styles.banner} ${styles.yellowBanner}`}>
+      {isHistorical && (
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+          ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </div>
+      )}
       <div className={styles.icon}>⚠️</div>
       <div className={styles.content}>
-        <h4 className={styles.title} style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>Coordinaciones Activas para Hoy</h4>
+        <h4 className={styles.title} style={{ color: '#ffffff', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+          {isHistorical ? 'Coordinaciones Activas' : 'Coordinaciones Activas para Hoy'}
+        </h4>
         <p className={styles.description} style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-          Hay {todayFlights.length} {todayFlights.length === 1 ? 'coordinación' : 'coordinaciones'} programadas para hoy. Revisa los horarios y zonas antes de realizar operaciones:
+          Hay {todayFlights.length} {todayFlights.length === 1 ? 'coordinación programada' : 'coordinaciones programadas'} para {isHistorical ? 'este día' : 'hoy'}. Revisa los horarios y zonas antes de realizar operaciones:
         </p>
         <div className={styles.grid}>
           {todayFlights.map(flight => {

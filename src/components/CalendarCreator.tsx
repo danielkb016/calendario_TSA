@@ -36,55 +36,57 @@ export default function CalendarCreator({ onCreated, onCancel }: { onCreated: (i
   };
 
   return (
-    <div className={`card ${styles.creatorCard}`}>
-      <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary)' }}>Crear Nuevo Calendario TSA</h2>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGroup}>
-          <label htmlFor="title">Título del Calendario</label>
-          <input 
-            id="title"
-            type="text" 
-            placeholder="Ej: Calendario Junio 2026" 
-            value={title} 
-            onChange={e => setTitle(e.target.value)}
-            required
-            className={styles.input}
-          />
-        </div>
+    <div className={styles.overlay} onClick={onCancel}>
+      <div className={`card ${styles.creatorCard}`} onClick={e => e.stopPropagation()}>
+        <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary)' }}>Crear Nuevo Calendario TSA</h2>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label htmlFor="title">Título del Calendario</label>
+            <input 
+              id="title"
+              type="text" 
+              placeholder="Ej: Calendario Junio 2026" 
+              value={title} 
+              onChange={e => setTitle(e.target.value)}
+              required
+              className={styles.input}
+            />
+          </div>
 
-        <div className={styles.formGroup}>
-          <label>Zonas de Vuelo</label>
-          {zones.map((zone, i) => (
-            <div key={i} className={styles.zoneRow}>
-              <input 
-                type="text" 
-                placeholder="Nombre de la zona (Ej: Club Las Encinas)" 
-                value={zone}
-                onChange={e => handleZoneChange(i, e.target.value)}
-                required
-                className={styles.input}
-              />
-              {zones.length > 1 && (
-                <button type="button" onClick={() => handleRemoveZone(i)} className={styles.btnRemove}>
-                  &times;
-                </button>
-              )}
-            </div>
-          ))}
-          <button type="button" onClick={handleAddZone} className={styles.btnAddZone}>
-            + Añadir otra zona
-          </button>
-        </div>
+          <div className={styles.formGroup}>
+            <label>Zonas de Vuelo</label>
+            {zones.map((zone, i) => (
+              <div key={i} className={styles.zoneRow}>
+                <input 
+                  type="text" 
+                  placeholder="Nombre de la zona (Ej: Club Las Encinas)" 
+                  value={zone}
+                  onChange={e => handleZoneChange(i, e.target.value)}
+                  required
+                  className={styles.input}
+                />
+                {zones.length > 1 && (
+                  <button type="button" onClick={() => handleRemoveZone(i)} className={styles.btnRemove}>
+                    &times;
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" onClick={handleAddZone} className={styles.btnAddZone}>
+              + Añadir otra zona
+            </button>
+          </div>
 
-        <div className={styles.actions}>
-          <button type="button" className="btn" onClick={onCancel} disabled={loading}>
-            Cancelar
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={loading || !title.trim() || zones.filter(z=>z.trim()).length === 0}>
-            {loading ? 'Creando...' : 'Crear Calendario'}
-          </button>
-        </div>
-      </form>
+          <div className={styles.actions}>
+            <button type="button" className="btn" onClick={onCancel} disabled={loading}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading || !title.trim() || zones.filter(z=>z.trim()).length === 0}>
+              {loading ? 'Creando...' : 'Crear Calendario'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
