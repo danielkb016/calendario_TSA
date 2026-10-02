@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import styles from './FlightTable.module.css';
 
 type Flight = {
@@ -32,6 +33,16 @@ export default function FlightTable({
   title: string;
   emptyMessage?: string;
 }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [flights]);
+
+  const totalPages = Math.max(1, Math.ceil(flights.length / itemsPerPage));
+  const currentFlights = flights.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const getCoordinationClass = (status: string) => {
     switch (status.toLowerCase()) {
       case 'confirmado': return 'badge-success';
@@ -65,11 +76,12 @@ export default function FlightTable({
             </tr>
           </thead>
           <tbody>
-            {flights.map((flight, i) => {
+            {currentFlights.map((flight, i) => {
               const zone = zones.find(z => z.id === flight.zoneId);
+              const globalIndex = (currentPage - 1) * itemsPerPage + i + 1;
               return (
                 <tr key={flight.id} onClick={() => onEdit(flight)} className={styles.row}>
-                  <td className={styles.idCol}>{i + 1}</td>
+                  <td className={styles.idCol}>{globalIndex}</td>
                   <td>
                     {flight.startDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                     {flight.startDate.toDateString() !== flight.endDate.toDateString() && (
@@ -100,6 +112,29 @@ export default function FlightTable({
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          <button 
+            className="btn" 
+            style={{ padding: '0.4rem 0.8rem', border: '1px solid var(--border-color)', backgroundColor: currentPage === 1 ? '#f8f9fa' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.5 : 1 }}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            &larr; Anterior
+          </button>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-color)', fontWeight: 600 }}>
+            Página {currentPage} de {totalPages}
+          </span>
+          <button 
+            className="btn" 
+            style={{ padding: '0.4rem 0.8rem', border: '1px solid var(--border-color)', backgroundColor: currentPage === totalPages ? '#f8f9fa' : 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.5 : 1 }}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Siguiente &rarr;
+          </button>
+        </div>
+      )}
     </div>
   );
 }
