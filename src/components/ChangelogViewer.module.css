@@ -86,3 +86,48 @@
   color: #64748b;
   white-space: nowrap;
 }
+
+.versionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 0.3rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 1rem;
+  vertical-align: middle;
+}
+
+.versionBtn:hover {
+  background-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+.versionIcon {
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+}
+
+.versionTextContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.versionLabel {
+  color: #3b82f6;
+  font-size: 0.6rem;
+  font-weight: 500;
+}
+
+.versionValue {
+  color: #60a5fa;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
