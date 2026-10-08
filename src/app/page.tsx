@@ -5,6 +5,7 @@ import DashboardClient from '@/components/DashboardClient';
 import GlobalTodayBanner from '@/components/GlobalTodayBanner';
 import ExternalLinksHeader from '@/components/ExternalLinksHeader';
 import GlobalHeaderActions from '@/components/GlobalHeaderActions';
+import ChangelogViewer from '@/components/ChangelogViewer';
 import styles from './page.module.css';
 
 export default async function Home(props: { searchParams: Promise<{ date?: string }> }) {
@@ -24,7 +25,7 @@ export default async function Home(props: { searchParams: Promise<{ date?: strin
         <div className={styles.headerCenter}>
           <h1 className={styles.title}>
             COORDINACIONES DRON CENTER
-            <span style={{ fontSize: '0.4em', color: '#888', fontWeight: 'normal', verticalAlign: 'super', marginLeft: '0.5rem' }}>v0.0.4</span>
+            <ChangelogViewer currentVersion="0.0.6" />
           </h1>
           <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
         </div>

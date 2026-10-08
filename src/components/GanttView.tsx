@@ -26,7 +26,13 @@ type Operator = {
 type Calendar = {
   id: number;
   title: string;
-  globalPermits: { id: number; name: string; expirationDate: Date }[];
+  globalPermits: { 
+    id: number; 
+    name: string; 
+    expirationDate: Date;
+    warningDays?: number;
+    exclusions?: { id: number; date: Date; reason: string | null; }[];
+  }[];
   requiresDailyCoordination: boolean;
   zones: { 
     id: number; 
@@ -178,9 +184,10 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
     calendar.globalPermits.forEach(permit => {
       const expDate = new Date(permit.expirationDate);
       const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const warningDays = permit.warningDays ?? 30;
       if (daysLeft < 0) {
         expiredPermits.push(permit);
-      } else if (daysLeft <= 30) {
+      } else if (daysLeft <= warningDays) {
         expiringPermits.push(permit);
       }
     });
@@ -235,19 +242,63 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
           {/* Header Row */}
           <div className={`${styles.headerCell} ${styles.zoneHeader}`}>ZONAS DE VUELO</div>
           {days.map((day, i) => {
+            const dateStr = day.toDateString();
             const realTodayStr = new Date().toDateString();
             const selectedDateStr = currentDateIso ? new Date(currentDateIso).toDateString() : realTodayStr;
             
-            const isRealToday = day.toDateString() === realTodayStr;
-            const isSelected = day.toDateString() === selectedDateStr;
+            const isRealToday = dateStr === realTodayStr;
+            const isSelected = dateStr === selectedDateStr;
+            
+            let excludedBy: string[] = [];
+            if (calendar.globalPermits) {
+              for (const permit of calendar.globalPermits) {
+                if (permit.exclusions) {
+                  for (const ex of permit.exclusions) {
+                    const startDateStr = typeof ex.startDate === 'string' 
+                      ? ex.startDate.split('T')[0] 
+                      : new Date(ex.startDate).toISOString().split('T')[0];
+                      
+                    const endDateStr = ex.endDate 
+                      ? (typeof ex.endDate === 'string' ? ex.endDate.split('T')[0] : new Date(ex.endDate).toISOString().split('T')[0])
+                      : startDateStr;
+                    
+                    const dayStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD
+                    
+                    if (dayStr >= startDateStr && dayStr <= endDateStr) {
+                      let reasonText = '';
+                      if (ex.ruleType === 'DENY_ALL' || !ex.ruleType) {
+                        reasonText = ex.reason || 'No permitido';
+                      } else {
+                        const tw = ex.timeWindowsJson ? JSON.parse(ex.timeWindowsJson) : [];
+                        const twStr = tw.map((w:any) => `${w.start}-${w.end}`).join(', ');
+                        if (ex.ruleType === 'ALLOW_WINDOWS') {
+                          reasonText = `Solo permitido: ${twStr} (${ex.reason || 'Sin motivo'})`;
+                        } else {
+                          reasonText = `Prohibido: ${twStr} (${ex.reason || 'Sin motivo'})`;
+                        }
+                      }
+                      excludedBy.push(`${permit.name}: ${reasonText}`);
+                    }
+                  }
+                }
+              }
+            }
             
             let highlightClass = '';
             if (isRealToday) highlightClass = styles.todayHeader;
             else if (isSelected) highlightClass = styles.selectedHeader;
 
             return (
-              <div key={i} className={`${styles.headerCell} ${highlightClass}`}>
+              <div 
+                key={i} 
+                className={`${styles.headerCell} ${highlightClass}`}
+                style={excludedBy.length > 0 ? { backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#b91c1c', border: '1px solid rgba(239, 68, 68, 0.5)' } : undefined}
+                title={excludedBy.length > 0 ? `PROHIBIDO VOLAR:\n${excludedBy.join('\n')}` : undefined}
+              >
                 {day.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                {excludedBy.length > 0 && (
+                  <div style={{ fontSize: '0.65rem', marginTop: '0.2rem', color: '#ef4444' }}>🚫</div>
+                )}
               </div>
             );
           })}

@@ -10,7 +10,11 @@ export async function getCalendars() {
     include: {
       zones: true,
       callTargets: true,
-      globalPermits: true,
+      globalPermits: {
+        include: {
+          exclusions: true
+        }
+      },
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -102,16 +106,46 @@ export async function updateCallTarget(id: number, data: { name?: string; requir
 
 // -- Global Permits --
 
-export async function addGlobalPermit(calendarId: number, name: string, expirationDate: Date) {
+export async function addGlobalPermit(calendarId: number, name: string, expirationDate: Date, warningDays: number = 30) {
   const permit = await prisma.globalPermit.create({
     data: {
       calendarId,
       name,
-      expirationDate
+      expirationDate,
+      warningDays
     }
   });
   revalidatePath('/');
   return permit;
+}
+
+export async function updateGlobalPermit(id: number, name: string, expirationDate: Date, warningDays: number = 30) {
+  const permit = await prisma.globalPermit.update({
+    where: { id },
+    data: { name, expirationDate, warningDays }
+  });
+  revalidatePath('/');
+  return permit;
+}
+
+export async function addPermitExclusion(
+  globalPermitId: number, 
+  startDate: Date, 
+  endDate: Date | null = null, 
+  ruleType: string = 'DENY_ALL', 
+  timeWindowsJson: string | null = null, 
+  reason: string | null = null
+) {
+  const exclusion = await prisma.permitExclusion.create({
+    data: { globalPermitId, startDate, endDate, ruleType, timeWindowsJson, reason }
+  });
+  revalidatePath('/');
+  return exclusion;
+}
+
+export async function removePermitExclusion(id: number) {
+  await prisma.permitExclusion.delete({ where: { id } });
+  revalidatePath('/');
 }
 
 export async function deleteGlobalPermit(id: number) {
@@ -218,7 +252,11 @@ export async function getGlobalCoordinationsForDate(dateIso?: string) {
   const calendars = await prisma.calendar.findMany({
     include: { 
       callTargets: true,
-      globalPermits: true
+      globalPermits: {
+        include: {
+          exclusions: true
+        }
+      }
     }
   });
 
