@@ -16,10 +16,21 @@ type Operator = {
   name: string;
 };
 
+type PermitExclusion = {
+  id: number;
+  startDate: Date;
+  endDate: Date | null;
+  ruleType: string;
+  timeWindowsJson: string | null;
+  reason: string | null;
+};
+
 type GlobalPermit = {
   id: number;
   name: string;
   expirationDate: Date;
+  warningDays: number;
+  exclusions?: PermitExclusion[];
 };
 
 type CallTarget = {
@@ -27,6 +38,7 @@ type CallTarget = {
   name: string;
   requiresOpening: boolean;
   requiresClosing: boolean;
+  contactNotes?: string | null;
 };
 
 type Zone = {
@@ -43,6 +55,8 @@ type Calendar = {
   zones: Zone[];
   callTargets: CallTarget[];
   globalPermits: GlobalPermit[];
+  lat?: number | null;
+  lng?: number | null;
 };
 
 type Flight = {
