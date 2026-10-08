@@ -144,10 +144,21 @@ function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, l
   );
 }
 
+type PermitExclusion = {
+  id: number;
+  startDate: Date | string;
+  endDate: Date | string | null;
+  ruleType: string;
+  timeWindowsJson: string | null;
+  reason: string | null;
+};
+
 type GlobalPermit = {
   id: number;
   name: string;
   expirationDate: Date;
+  warningDays?: number;
+  exclusions?: PermitExclusion[];
 };
 
 type CallTarget = {
