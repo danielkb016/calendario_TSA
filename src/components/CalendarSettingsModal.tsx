@@ -5,14 +5,26 @@ import {
   updateCalendar, 
   addZone, updateZone, deleteZone, 
   addCallTarget, updateCallTarget, deleteCallTarget, 
-  addGlobalPermit, deleteGlobalPermit 
+  addGlobalPermit, updateGlobalPermit, deleteGlobalPermit,
+  addPermitExclusion, removePermitExclusion 
 } from '@/app/actions';
 import styles from './CalendarSettingsModal.module.css';
+
+type PermitExclusion = {
+  id: number;
+  startDate: Date;
+  endDate: Date | null;
+  ruleType: string;
+  timeWindowsJson: string | null;
+  reason: string | null;
+};
 
 type GlobalPermit = {
   id: number;
   name: string;
   expirationDate: Date;
+  warningDays: number;
+  exclusions?: PermitExclusion[];
 };
 
 type CallTarget = {
@@ -66,6 +78,19 @@ export default function CalendarSettingsModal({
   // -- Permits Tab State --
   const [newPermitName, setNewPermitName] = useState('');
   const [newPermitDate, setNewPermitDate] = useState('');
+  const [newPermitWarningDays, setNewPermitWarningDays] = useState(30);
+
+  const [editingPermitId, setEditingPermitId] = useState<number | null>(null);
+  const [editingPermitName, setEditingPermitName] = useState('');
+  const [editingPermitDate, setEditingPermitDate] = useState('');
+  const [editingPermitWarningDays, setEditingPermitWarningDays] = useState(30);
+
+  const [newExclusionIsRange, setNewExclusionIsRange] = useState(false);
+  const [newExclusionStartDate, setNewExclusionStartDate] = useState('');
+  const [newExclusionEndDate, setNewExclusionEndDate] = useState('');
+  const [newExclusionRuleType, setNewExclusionRuleType] = useState('DENY_ALL'); // DENY_ALL, ALLOW_WINDOWS, DENY_WINDOWS
+  const [newExclusionTimeWindows, setNewExclusionTimeWindows] = useState<{start: string, end: string}[]>([{start: '', end: ''}]);
+  const [newExclusionReason, setNewExclusionReason] = useState('');
 
   // -- Coordination / Calls Tab State --
   const [requiresDaily, setRequiresDaily] = useState(calendar.requiresDailyCoordination);
@@ -199,13 +224,67 @@ export default function CalendarSettingsModal({
     if (!newPermitName.trim() || !newPermitDate) return;
     setLoading(true);
     try {
-      await addGlobalPermit(calendar.id, newPermitName.trim(), new Date(newPermitDate));
+      await addGlobalPermit(calendar.id, newPermitName.trim(), new Date(newPermitDate), newPermitWarningDays);
       setNewPermitName('');
       setNewPermitDate('');
+      setNewPermitWarningDays(30);
       onUpdated();
     } catch (error) {
       console.error(error);
       alert('Error al añadir el permiso');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveEditPermit = async (id: number) => {
+    if (!editingPermitName.trim() || !editingPermitDate) return;
+    setLoading(true);
+    try {
+      await updateGlobalPermit(id, editingPermitName.trim(), new Date(editingPermitDate), editingPermitWarningDays);
+      setEditingPermitId(null);
+      onUpdated();
+    } catch (error) {
+      console.error(error);
+      alert('Error al actualizar el permiso');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddExclusion = async (permitId: number) => {
+    if (!newExclusionStartDate) return;
+    setLoading(true);
+    try {
+      const endD = newExclusionIsRange && newExclusionEndDate ? new Date(newExclusionEndDate) : null;
+      const validWindows = newExclusionTimeWindows.filter(w => w.start && w.end);
+      const twJson = newExclusionRuleType !== 'DENY_ALL' && validWindows.length > 0 ? JSON.stringify(validWindows) : null;
+      
+      await addPermitExclusion(permitId, new Date(newExclusionStartDate), endD, newExclusionRuleType, twJson, newExclusionReason.trim() || null);
+      
+      setNewExclusionStartDate('');
+      setNewExclusionEndDate('');
+      setNewExclusionRuleType('DENY_ALL');
+      setNewExclusionTimeWindows([{start: '', end: ''}]);
+      setNewExclusionReason('');
+      setNewExclusionIsRange(false);
+      onUpdated();
+    } catch (error) {
+      console.error(error);
+      alert('Error al añadir la exclusión de fecha');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteExclusion = async (exclusionId: number) => {
+    setLoading(true);
+    try {
+      await removePermitExclusion(exclusionId);
+      onUpdated();
+    } catch (error) {
+      console.error(error);
+      alert('Error al eliminar exclusión');
     } finally {
       setLoading(false);
     }
@@ -458,14 +537,129 @@ export default function CalendarSettingsModal({
                 {calendar.globalPermits && calendar.globalPermits.length > 0 ? (
                   <ul className={styles.list}>
                     {calendar.globalPermits.map(permit => (
-                      <li key={permit.id} className={styles.listItem} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong style={{ color: '#0f172a' }}>{permit.name}</strong>
-                          <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '0.5rem' }}>
-                            Caduca el {new Date(permit.expirationDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <button onClick={() => handleDeletePermit(permit.id)} disabled={loading} className={styles.iconBtn} title="Eliminar permiso">🗑️</button>
+                      <li key={permit.id} className={styles.listItem} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        
+                        {editingPermitId === permit.id ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <input type="text" value={editingPermitName} onChange={e => setEditingPermitName(e.target.value)} className={styles.input} style={{ flex: 1, margin: 0 }} />
+                              <input type="date" value={editingPermitDate} onChange={e => setEditingPermitDate(e.target.value)} className={styles.input} style={{ margin: 0 }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <label style={{ fontSize: '0.85rem' }}>
+                                Aviso antelación: 
+                                <input type="number" value={editingPermitWarningDays} onChange={e => setEditingPermitWarningDays(Number(e.target.value))} className={styles.input} style={{ width: '60px', marginLeft: '0.5rem', margin: 0, display: 'inline-block' }} /> días
+                              </label>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => handleSaveEditPermit(permit.id)} disabled={loading} className={styles.successBtn}>✔️</button>
+                                <button onClick={() => setEditingPermitId(null)} disabled={loading} className={styles.cancelBtn}>❌</button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ flex: 1 }}>
+                              <strong style={{ color: '#0f172a' }}>{permit.name}</strong>
+                              <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '0.5rem' }}>
+                                Caduca el {new Date(permit.expirationDate).toLocaleDateString()} (aviso {permit.warningDays} días)
+                              </span>
+                              
+                              {/* Exclusions Sub-list */}
+                              <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: '6px' }}>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem' }}>Fechas Excluidas (No se permite volar):</div>
+                                {permit.exclusions && permit.exclusions.length > 0 ? (
+                                  <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>
+                                    {permit.exclusions.map(ex => {
+                                      const startStr = new Date(ex.startDate).toLocaleDateString();
+                                      const endStr = ex.endDate ? new Date(ex.endDate).toLocaleDateString() : null;
+                                      const dateText = endStr ? `Del ${startStr} al ${endStr}` : startStr;
+                                      let ruleText = '';
+                                      if (ex.ruleType === 'DENY_ALL') ruleText = ' (Todo el día)';
+                                      else {
+                                        const tw = ex.timeWindowsJson ? JSON.parse(ex.timeWindowsJson) : [];
+                                        const twStr = tw.map((w:any) => `${w.start}-${w.end}`).join(', ');
+                                        if (ex.ruleType === 'ALLOW_WINDOWS') ruleText = ` (Solo permitido: ${twStr})`;
+                                        if (ex.ruleType === 'DENY_WINDOWS') ruleText = ` (Solo prohibido: ${twStr})`;
+                                      }
+                                      return (
+                                        <li key={ex.id} style={{ marginBottom: '0.2rem' }}>
+                                          {dateText}{ruleText} - {ex.reason || 'Sin motivo'}
+                                          <button onClick={() => handleDeleteExclusion(ex.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', marginLeft: '0.5rem' }}>✖</button>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                ) : (
+                                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Ninguna fecha excluida.</div>
+                                )}
+                                
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
+                                  <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
+                                    <input type="checkbox" checked={newExclusionIsRange} onChange={e => setNewExclusionIsRange(e.target.checked)} /> Rango de días
+                                  </label>
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <input type="date" value={newExclusionStartDate} onChange={e => setNewExclusionStartDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                    {newExclusionIsRange && (
+                                      <>
+                                        <span style={{ fontSize: '0.8rem' }}>al</span>
+                                        <input type="date" value={newExclusionEndDate} onChange={e => setNewExclusionEndDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                      </>
+                                    )}
+                                    <select value={newExclusionRuleType} onChange={e => setNewExclusionRuleType(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }}>
+                                      <option value="DENY_ALL">Prohibir todo el día</option>
+                                      <option value="ALLOW_WINDOWS">SÍ se puede volar en horas...</option>
+                                      <option value="DENY_WINDOWS">NO se puede volar en horas...</option>
+                                    </select>
+                                  </div>
+                                  
+                                  {newExclusionRuleType !== 'DENY_ALL' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cbd5e1' }}>
+                                      {newExclusionTimeWindows.map((tw, idx) => (
+                                        <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                          <input type="time" value={tw.start} onChange={e => {
+                                            const newW = [...newExclusionTimeWindows];
+                                            newW[idx].start = e.target.value;
+                                            setNewExclusionTimeWindows(newW);
+                                          }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                          <span style={{ fontSize: '0.8rem' }}>a</span>
+                                          <input type="time" value={tw.end} onChange={e => {
+                                            const newW = [...newExclusionTimeWindows];
+                                            newW[idx].end = e.target.value;
+                                            setNewExclusionTimeWindows(newW);
+                                          }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                          {idx === newExclusionTimeWindows.length - 1 && (
+                                            <button onClick={() => setNewExclusionTimeWindows([...newExclusionTimeWindows, {start: '', end: ''}])} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>+</button>
+                                          )}
+                                          {newExclusionTimeWindows.length > 1 && (
+                                            <button onClick={() => {
+                                              const newW = [...newExclusionTimeWindows];
+                                              newW.splice(idx, 1);
+                                              setNewExclusionTimeWindows(newW);
+                                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>×</button>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <input type="text" placeholder="Motivo (opcional)..." value={newExclusionReason} onChange={e => setNewExclusionReason(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem', flex: 1 }} />
+                                    <button onClick={() => handleAddExclusion(permit.id)} disabled={!newExclusionStartDate || loading || (newExclusionIsRange && !newExclusionEndDate)} className={styles.primaryBtn} style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>Añadir</button>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                              <button onClick={() => {
+                                setEditingPermitId(permit.id);
+                                setEditingPermitName(permit.name);
+                                setEditingPermitDate(new Date(permit.expirationDate).toISOString().split('T')[0]);
+                                setEditingPermitWarningDays(permit.warningDays);
+                              }} disabled={loading} className={styles.iconBtn} title="Editar permiso">✏️</button>
+                              <button onClick={() => handleDeletePermit(permit.id)} disabled={loading} className={styles.iconBtn} title="Eliminar permiso">🗑️</button>
+                            </div>
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -473,26 +667,41 @@ export default function CalendarSettingsModal({
                   <p className={styles.empty}>No hay permisos globales añadidos.</p>
                 )}
 
-                <h3 style={{ marginTop: '2rem' }}>Añadir Permiso</h3>
-                <form onSubmit={handleAddPermit} style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                  <input 
-                    type="text" 
-                    value={newPermitName} 
-                    onChange={e => setNewPermitName(e.target.value)} 
-                    placeholder="Nombre (ej: Permiso ENAIRE)..."
-                    className={styles.input}
-                    style={{ flex: 2, margin: 0 }}
-                  />
-                  <input
-                    type="date"
-                    value={newPermitDate}
-                    onChange={e => setNewPermitDate(e.target.value)}
-                    className={styles.input}
-                    style={{ flex: 1, margin: 0 }}
-                  />
-                  <button type="submit" disabled={loading || !newPermitName.trim() || !newPermitDate} className={styles.primaryBtn}>
-                    Añadir Permiso
-                  </button>
+                <h3 style={{ marginTop: '2.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>Añadir Nuevo Permiso</h3>
+                <form onSubmit={handleAddPermit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem', backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 2 }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>Nombre del permiso</label>
+                      <input 
+                        type="text" 
+                        value={newPermitName} 
+                        onChange={e => setNewPermitName(e.target.value)} 
+                        placeholder="Ej: Permiso ENAIRE..."
+                        className={styles.input}
+                        style={{ margin: 0, width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>Fecha de caducidad</label>
+                      <input
+                        type="date"
+                        value={newPermitDate}
+                        onChange={e => setNewPermitDate(e.target.value)}
+                        className={styles.input}
+                        style={{ margin: 0, width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                    <label style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 600 }}>Días de preaviso de caducidad:</span>
+                      <input type="number" value={newPermitWarningDays} onChange={e => setNewPermitWarningDays(Number(e.target.value))} className={styles.input} style={{ width: '80px', margin: 0, textAlign: 'center' }} /> días
+                    </label>
+                    <button type="submit" disabled={loading || !newPermitName.trim() || !newPermitDate} className={styles.primaryBtn} style={{ padding: '0.5rem 1.5rem', fontWeight: 'bold' }}>
+                      + Añadir Permiso
+                    </button>
+                  </div>
                 </form>
               </div>
             )}

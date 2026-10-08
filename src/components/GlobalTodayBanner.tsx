@@ -471,21 +471,137 @@ export default function GlobalTodayBanner({
                   )}
                   
                   {coord.globalPermits && coord.globalPermits.length > 0 && (
-                    <div style={{ marginTop: '1rem' }}>
+                    <div style={{ marginTop: '1rem' }} suppressHydrationWarning>
                       <div className={styles.sectionLabel}>PERMISOS GLOBALES</div>
-                      <div className={styles.globalPermitsList}>
+                      <div className={styles.globalPermitsList} suppressHydrationWarning>
                         {coord.globalPermits.map(permit => {
                           const expDate = new Date(permit.expirationDate);
                           const daysLeft = Math.ceil((expDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24));
+                          const warningDays = permit.warningDays ?? 30;
                           
-                          let color = '#4ade80';
-                          if (daysLeft < 0) color = '#f87171';
-                          else if (daysLeft <= 30) color = '#facc15';
+                          let isExcluded = false;
+                          let isPartiallyExcluded = false;
+                          let statusText = '';
+                          let exclusionReason = '';
                           
+                          // Determine the target date string (YYYY-MM-DD)
+                          // If currentDateIso exists (e.g. '2026-10-08'), use it. Otherwise, use local today's date.
+                          const todayLocalStr = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD format
+                          const targetDateStr = currentDateIso || todayLocalStr;
+
+                          if (permit.exclusions) {
+                            for (const ex of permit.exclusions) {
+                              // We parse the ISO string from the DB (e.g. '2026-10-08T00:00:00.000Z') and get the date part
+                              const startDateStr = typeof ex.startDate === 'string' 
+                                ? ex.startDate.split('T')[0] 
+                                : new Date(ex.startDate).toISOString().split('T')[0];
+                                
+                              const endDateStr = ex.endDate 
+                                ? (typeof ex.endDate === 'string' ? ex.endDate.split('T')[0] : new Date(ex.endDate).toISOString().split('T')[0])
+                                : startDateStr;
+                              
+                                if (targetDateStr >= startDateStr && targetDateStr <= endDateStr) {
+                                  if (ex.ruleType === 'DENY_ALL' || !ex.ruleType) {
+                                    isExcluded = true;
+                                    statusText = 'Excluido hoy';
+                                    exclusionReason = ex.reason || 'Sin motivo especificado';
+                                  } else {
+                                    const tw = ex.timeWindowsJson ? JSON.parse(ex.timeWindowsJson) : [];
+                                    
+                                    if (targetDateStr === todayLocalStr) {
+                                      const currentHourMin = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                                      let inWindow = false;
+                                      let currentW = null;
+                                      for (const w of tw) {
+                                        if (currentHourMin >= w.start && currentHourMin <= w.end) {
+                                          inWindow = true;
+                                          currentW = w;
+                                          break;
+                                        }
+                                      }
+                                      tw.sort((a:any, b:any) => a.start.localeCompare(b.start));
+                                      const nextW = tw.find((w:any) => currentHourMin < w.start);
+                                      
+                                      if (ex.ruleType === 'ALLOW_WINDOWS') {
+                                        if (!inWindow) {
+                                          isExcluded = true;
+                                          statusText = nextW ? `Excluido hasta las ${nextW.start}` : 'Excluido resto del día';
+                                        } else {
+                                          isPartiallyExcluded = true;
+                                          statusText = `Excluido a partir de las ${currentW.end}`;
+                                        }
+                                      } else if (ex.ruleType === 'DENY_WINDOWS') {
+                                        if (inWindow) {
+                                          isExcluded = true;
+                                          statusText = currentW ? `Excluido hasta las ${currentW.end}` : 'Excluido por horas';
+                                        } else {
+                                          if (nextW) {
+                                            isPartiallyExcluded = true;
+                                            statusText = `Excluido a partir de las ${nextW.start}`;
+                                          }
+                                        }
+                                      }
+                                      exclusionReason = statusText + (ex.reason ? ` (${ex.reason})` : '');
+                                    } else {
+                                      isExcluded = true; 
+                                      const twStr = tw.map((w:any) => `${w.start}-${w.end}`).join(', ');
+                                      statusText = ex.ruleType === 'ALLOW_WINDOWS' ? `Permitido: ${twStr}` : `Prohibido: ${twStr}`;
+                                      exclusionReason = statusText;
+                                    }
+                                  }
+
+                                  if (isExcluded || isPartiallyExcluded) {
+                                    break;
+                                  }
+                                }
+                            }
+                          }
+                          
+                          let color = '#4ade80'; // Verde por defecto
+                          let bgColor = undefined;
+                          let isBlinking = false;
+                          let subText = expDate.toLocaleDateString();
+
+                          if (isExcluded) {
+                            color = '#ef4444'; // Rojo
+                            bgColor = 'rgba(239, 68, 68, 0.1)';
+                            subText = statusText;
+                          } else if (isPartiallyExcluded) {
+                            color = '#f97316'; // Naranja
+                            bgColor = 'rgba(249, 115, 22, 0.1)';
+                            isBlinking = true;
+                            subText = statusText;
+                          } else if (daysLeft < 0) {
+                            color = '#f87171'; // Rojo pastel si caducado
+                          } else if (daysLeft <= warningDays) {
+                            color = '#facc15'; // Amarillo preaviso
+                          }
+
                           return (
-                            <div key={permit.id} className={styles.globalPermitItem} style={{ borderColor: color }}>
-                              <span>{permit.name}</span>
-                              <span style={{ color }}>{expDate.toLocaleDateString()}</span>
+                            <div 
+                              key={permit.id} 
+                              className={styles.globalPermitItem} 
+                              style={{ 
+                                borderColor: color, 
+                                backgroundColor: bgColor,
+                                animation: isBlinking ? 'blinkOrange 2s infinite ease-in-out' : undefined
+                              }}
+                              title={(isExcluded || isPartiallyExcluded) ? `RESTRICCIÓN:\n${exclusionReason}` : undefined}
+                              suppressHydrationWarning
+                            >
+                              <style suppressHydrationWarning>{`
+                                @keyframes blinkOrange {
+                                  0% { background-color: rgba(249, 115, 22, 0.1); border-color: #f97316; }
+                                  50% { background-color: rgba(249, 115, 22, 0.3); border-color: #f97316; }
+                                  100% { background-color: rgba(249, 115, 22, 0.1); border-color: #f97316; }
+                                }
+                              `}</style>
+                              <span suppressHydrationWarning style={{ color: (isExcluded || isPartiallyExcluded) ? color : undefined, fontWeight: (isExcluded || isPartiallyExcluded) ? 'bold' : 'normal' }}>
+                                {permit.name} {(isExcluded || isPartiallyExcluded) && <span suppressHydrationWarning style={{fontSize: '0.7rem', color, marginLeft: '0.2rem'}}>⚠️</span>}
+                              </span>
+                              <span suppressHydrationWarning style={{ color, fontWeight: (isExcluded || isPartiallyExcluded) ? 'bold' : 'normal', fontSize: (isExcluded || isPartiallyExcluded) ? '0.75rem' : undefined }}>
+                                {subText}
+                              </span>
                             </div>
                           );
                         })}
