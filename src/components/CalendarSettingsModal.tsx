@@ -12,8 +12,8 @@ import styles from './CalendarSettingsModal.module.css';
 
 type PermitExclusion = {
   id: number;
-  startDate: Date;
-  endDate: Date | null;
+  startDate: Date | string;
+  endDate: Date | string | null;
   ruleType: string;
   timeWindowsJson: string | null;
   reason: string | null;

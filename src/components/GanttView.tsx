@@ -31,7 +31,14 @@ type Calendar = {
     name: string; 
     expirationDate: Date;
     warningDays?: number;
-    exclusions?: { id: number; date: Date; reason: string | null; }[];
+    exclusions?: { 
+      id: number; 
+      startDate: Date | string; 
+      endDate: Date | string | null; 
+      ruleType: string; 
+      timeWindowsJson: string | null; 
+      reason: string | null; 
+    }[];
   }[];
   requiresDailyCoordination: boolean;
   zones: { 
