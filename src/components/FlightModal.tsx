@@ -34,6 +34,7 @@ export default function FlightModal({
   editingFlight?: Flight;
   onClose: (refresh: boolean) => void;
 }) {
+  const [isCopying, setIsCopying] = useState(false);
   const [operator, setOperator] = useState('');
   const [zoneId, setZoneId] = useState(zones[0]?.id || 0);
   const [startDate, setStartDate] = useState('');
@@ -77,7 +78,7 @@ export default function FlightModal({
     const end = new Date(`${endDate}T${endTime}`);
 
     try {
-      if (editingFlight) {
+      if (editingFlight && !isCopying) {
         await updateFlight(editingFlight.id, {
           operator,
           zoneId,
@@ -116,7 +117,22 @@ export default function FlightModal({
   return (
     <div className={styles.overlay}>
       <div className={`card ${styles.modal}`}>
-        <h2>{editingFlight ? 'Editar Coordinación' : 'Nueva Coordinación'}</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0 }}>
+            {editingFlight && !isCopying ? 'Editar Coordinación' : isCopying ? 'Nueva Coordinación (Copia)' : 'Nueva Coordinación'}
+          </h2>
+          {editingFlight && !isCopying && (
+            <button 
+              type="button" 
+              onClick={() => setIsCopying(true)} 
+              className={styles.secondaryBtn}
+              style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              title="Copia estos datos para crear una nueva coordinación igual"
+            >
+              📋 Copiar
+            </button>
+          )}
+        </div>
         
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
@@ -172,7 +188,7 @@ export default function FlightModal({
           </div>
 
           <div className={styles.actions}>
-            {editingFlight && (
+            {editingFlight && !isCopying && (
               <button type="button" className={`btn ${styles.btnDelete}`} onClick={handleDelete} disabled={loading}>
                 Eliminar
               </button>
@@ -182,7 +198,7 @@ export default function FlightModal({
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Guardando...' : 'Guardar'}
+              {loading ? 'Guardando...' : (editingFlight && !isCopying ? 'Guardar Cambios' : 'Crear Coordinación')}
             </button>
           </div>
         </form>
