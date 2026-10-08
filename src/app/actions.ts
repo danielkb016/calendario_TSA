@@ -468,10 +468,23 @@ export async function createFlight(data: {
   endDate: Date;
   coordination: string;
   situation?: string;
-  calendarId: number;
+  calendarId?: number; // make optional since we override it
   zoneId: number;
 }) {
-  const flight = await prisma.flight.create({ data });
+  const zone = await prisma.zone.findUnique({ where: { id: data.zoneId } });
+  if (!zone) throw new Error("Zone no encontrada. ID de zona inválido: " + data.zoneId);
+
+  const flight = await prisma.flight.create({ 
+    data: {
+      operator: data.operator,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      coordination: data.coordination,
+      situation: data.situation,
+      zoneId: data.zoneId,
+      calendarId: zone.calendarId
+    } 
+  });
   revalidatePath('/');
   return flight;
 }
@@ -484,7 +497,20 @@ export async function updateFlight(id: number, data: Partial<{
   situation: string;
   zoneId: number;
 }>) {
-  const flight = await prisma.flight.update({ where: { id }, data });
+  let calendarId: number | undefined;
+  if (data.zoneId) {
+    const zone = await prisma.zone.findUnique({ where: { id: data.zoneId } });
+    if (!zone) throw new Error("Zone no encontrada al actualizar");
+    calendarId = zone.calendarId;
+  }
+
+  const flight = await prisma.flight.update({ 
+    where: { id }, 
+    data: {
+      ...data,
+      ...(calendarId ? { calendarId } : {})
+    } 
+  });
   revalidatePath('/');
   return flight;
 }
