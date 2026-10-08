@@ -25,12 +25,18 @@ type PermitExclusion = {
   reason: string | null;
 };
 
+type PermitCoordination = {
+  id: number;
+  startDate: Date | string | null;
+  expirationDate: Date | string;
+  warningDays: number;
+  exclusions?: PermitExclusion[];
+};
+
 type GlobalPermit = {
   id: number;
   name: string;
-  expirationDate: Date;
-  warningDays: number;
-  exclusions?: PermitExclusion[];
+  coordinations?: PermitCoordination[];
 };
 
 type CallTarget = {

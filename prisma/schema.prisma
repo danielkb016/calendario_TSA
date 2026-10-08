@@ -29,22 +29,30 @@ model Calendar {
 model GlobalPermit {
   id             Int      @id @default(autoincrement())
   name           String
-  expirationDate DateTime
-  warningDays    Int      @default(30)
   calendarId     Int
   calendar       Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
-  exclusions     PermitExclusion[]
+  coordinations  PermitCoordination[]
+}
+
+model PermitCoordination {
+  id              Int      @id @default(autoincrement())
+  startDate       DateTime?
+  expirationDate  DateTime
+  warningDays     Int      @default(30)
+  globalPermitId  Int
+  globalPermit    GlobalPermit @relation(fields: [globalPermitId], references: [id], onDelete: Cascade)
+  exclusions      PermitExclusion[]
 }
 
 model PermitExclusion {
-  id             Int      @id @default(autoincrement())
-  startDate      DateTime
-  endDate        DateTime?
-  ruleType       String   @default("DENY_ALL")
-  timeWindowsJson String?
-  reason         String?
-  globalPermitId Int
-  globalPermit   GlobalPermit @relation(fields: [globalPermitId], references: [id], onDelete: Cascade)
+  id                   Int      @id @default(autoincrement())
+  startDate            DateTime
+  endDate              DateTime?
+  ruleType             String   @default("DENY_ALL")
+  timeWindowsJson      String?
+  reason               String?
+  permitCoordinationId Int
+  permitCoordination   PermitCoordination @relation(fields: [permitCoordinationId], references: [id], onDelete: Cascade)
 }
 
 model CallTarget {

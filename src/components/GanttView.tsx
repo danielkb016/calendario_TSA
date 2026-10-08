@@ -29,15 +29,19 @@ type Calendar = {
   globalPermits: { 
     id: number; 
     name: string; 
-    expirationDate: Date;
-    warningDays?: number;
-    exclusions?: { 
-      id: number; 
-      startDate: Date | string; 
-      endDate: Date | string | null; 
-      ruleType: string; 
-      timeWindowsJson: string | null; 
-      reason: string | null; 
+    coordinations?: {
+      id: number;
+      startDate: Date | string | null;
+      expirationDate: Date | string;
+      warningDays?: number;
+      exclusions?: { 
+        id: number; 
+        startDate: Date | string; 
+        endDate: Date | string | null; 
+        ruleType: string; 
+        timeWindowsJson: string | null; 
+        reason: string | null; 
+      }[];
     }[];
   }[];
   requiresDailyCoordination: boolean;
@@ -185,17 +189,30 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
   // Global permit expiration check
   const expiringPermits: { name: string; expirationDate: Date }[] = [];
   const expiredPermits: { name: string; expirationDate: Date }[] = [];
-  const today = new Date();
+  const targetDateStr = currentDateIso || new Date().toLocaleDateString('en-CA');
+  const targetDate = new Date(targetDateStr);
   
   if (calendar.globalPermits) {
     calendar.globalPermits.forEach(permit => {
-      const expDate = new Date(permit.expirationDate);
-      const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      const warningDays = permit.warningDays ?? 30;
-      if (daysLeft < 0) {
-        expiredPermits.push(permit);
-      } else if (daysLeft <= warningDays) {
-        expiringPermits.push(permit);
+      const activeCoord = permit.coordinations?.find(c => {
+        const startStr = c.startDate ? (typeof c.startDate === 'string' ? c.startDate.split('T')[0] : new Date(c.startDate).toISOString().split('T')[0]) : null;
+        const endStr = typeof c.expirationDate === 'string' ? c.expirationDate.split('T')[0] : new Date(c.expirationDate).toISOString().split('T')[0];
+        if (startStr && targetDateStr < startStr) return false;
+        if (targetDateStr > endStr) return false;
+        return true;
+      });
+
+      if (!activeCoord) {
+        expiredPermits.push({ name: permit.name, expirationDate: targetDate }); // Mock Date since no coord
+      } else {
+        const expDate = new Date(activeCoord.expirationDate);
+        const daysLeft = Math.ceil((expDate.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+        const warningDays = activeCoord.warningDays ?? 30;
+        if (daysLeft < 0) {
+          expiredPermits.push({ name: permit.name, expirationDate: expDate });
+        } else if (daysLeft <= warningDays) {
+          expiringPermits.push({ name: permit.name, expirationDate: expDate });
+        }
       }
     });
   }
@@ -204,12 +221,12 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
     <div className={styles.container}>
       {expiredPermits.length > 0 && (
         <div style={{ backgroundColor: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
-          ❌ Han caducado los siguientes permisos: {expiredPermits.map(p => p.name).join(', ')}.
+          ❌ Sin coordinación en fecha ({targetDateStr}): {expiredPermits.map(p => p.name).join(', ')}.
         </div>
       )}
       {expiringPermits.length > 0 && (
         <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fbbf24', color: '#b45309', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
-          ⚠️ Los siguientes permisos caducan pronto: {expiringPermits.map(p => `${p.name} (${new Date(p.expirationDate).toLocaleDateString()})`).join(', ')}.
+          ⚠️ Los siguientes permisos caducan pronto: {expiringPermits.map(p => `${p.name} (${p.expirationDate.toLocaleDateString()})`).join(', ')}.
         </div>
       )}
 
@@ -256,11 +273,22 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
             const isRealToday = dateStr === realTodayStr;
             const isSelected = dateStr === selectedDateStr;
             
+            const dayStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD
             let excludedBy: string[] = [];
             if (calendar.globalPermits) {
               for (const permit of calendar.globalPermits) {
-                if (permit.exclusions) {
-                  for (const ex of permit.exclusions) {
+                const activeCoord = permit.coordinations?.find(c => {
+                  const startStr = c.startDate ? (typeof c.startDate === 'string' ? c.startDate.split('T')[0] : new Date(c.startDate).toISOString().split('T')[0]) : null;
+                  const endStr = typeof c.expirationDate === 'string' ? c.expirationDate.split('T')[0] : new Date(c.expirationDate).toISOString().split('T')[0];
+                  if (startStr && dayStr < startStr) return false;
+                  if (dayStr > endStr) return false;
+                  return true;
+                });
+                
+                if (!activeCoord) {
+                  excludedBy.push(`${permit.name}: Sin coordinación`);
+                } else if (activeCoord.exclusions) {
+                  for (const ex of activeCoord.exclusions) {
                     const startDateStr = typeof ex.startDate === 'string' 
                       ? ex.startDate.split('T')[0] 
                       : new Date(ex.startDate).toISOString().split('T')[0];
@@ -268,8 +296,6 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
                     const endDateStr = ex.endDate 
                       ? (typeof ex.endDate === 'string' ? ex.endDate.split('T')[0] : new Date(ex.endDate).toISOString().split('T')[0])
                       : startDateStr;
-                    
-                    const dayStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD
                     
                     if (dayStr >= startDateStr && dayStr <= endDateStr) {
                       let reasonText = '';
