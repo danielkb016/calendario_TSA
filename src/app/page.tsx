@@ -25,7 +25,7 @@ export default async function Home(props: { searchParams: Promise<{ date?: strin
         <div className={styles.headerCenter}>
           <h1 className={styles.title}>
             COORDINACIONES DRON CENTER
-            <ChangelogViewer currentVersion="0.0.6" />
+            <ChangelogViewer currentVersion="0.0.7" />
           </h1>
           <p className={styles.subtitle}>Gestión y visualización de operaciones de vuelo en zonas TSA</p>
         </div>

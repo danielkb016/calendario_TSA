@@ -12,6 +12,18 @@ type ChangelogEntry = {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.0.7',
+    date: '13/10/2026',
+    summary: 'Consistencia en permisos diarios y gestión atómica de firmas operativas',
+    details: [
+      'Apertura atómica en un único paso: se eliminó la condición de carrera que dejaba ciclos pendientes y hacía que las coordinaciones abiertas pudieran mostrarse temporalmente como cerradas.',
+      'Prevención de aperturas duplicadas: el modal ahora detecta si la coordinación ya está en curso y evita que se creen múltiples ciclos abiertos simultáneos.',
+      'Acceso directo a notas: la edición de notas del día ahora está siempre disponible sin confundir al usuario con el formulario de nueva llamada.',
+      'Garantía de orden cronológico: ordenación estricta por fecha e identificador de ciclos tanto en base de datos como en la interfaz.',
+      'Soporte completo de zona horaria en Docker: integración de tzdata en la imagen de producción para garantizar sincronización horaria con Madrid a medianoche.'
+    ]
+  },
+  {
     version: '0.0.6',
     date: '08/10/2026',
     summary: 'Nuevo Sistema de Permisos a Doble Nivel (Restricciones y Coordinaciones)',
