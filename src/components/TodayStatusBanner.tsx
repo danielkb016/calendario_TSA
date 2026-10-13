@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import OpCoordinationModal from './OpCoordinationModal';
+import React from 'react';
 import styles from './TodayStatusBanner.module.css';
 
 type Flight = {

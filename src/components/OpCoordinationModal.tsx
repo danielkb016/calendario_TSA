@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { 
   updateDailyCallStatus, 
   updateDailyCallCycle, 
-  createDailyCallCycle, 
   openNewDailyCallCycle,
   deleteDailyCallCycle, 
   openCoordinationUntilDate, 
@@ -74,7 +73,7 @@ export default function OpCoordinationModal({
     const user = selectedUser === 'Otro' ? customUser : selectedUser;
     
     try {
-      let targetCycleId = existingCycle ? existingCycle.id : cycleId;
+      const targetCycleId = existingCycle ? existingCycle.id : cycleId;
 
       if (action === 'open') {
         if (!targetCycleId) {
