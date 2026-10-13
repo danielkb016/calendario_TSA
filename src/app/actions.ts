@@ -317,7 +317,9 @@ export async function getGlobalCoordinationsForDate(dateIso?: string) {
           callTarget: {
             include: { calendar: true }
           },
-          cycles: true
+          cycles: {
+            orderBy: { id: 'asc' }
+          }
         }
       });
       statuses.push(status);
@@ -339,6 +341,45 @@ export async function updateDailyCallStatus(id: number, data: { notes: string | 
   const coord = await prisma.dailyCallStatus.update({ where: { id }, data });
   revalidatePath('/');
   return coord;
+}
+
+export async function openNewDailyCallCycle(
+  statusId: number, 
+  user: string, 
+  untilDateStr?: string, 
+  notes?: string | null
+) {
+  if (untilDateStr) {
+    const cycle = await prisma.dailyCallCycle.create({
+      data: {
+        dailyCallStatusId: statusId,
+        opened: true,
+        openedBy: user,
+        openedAt: new Date()
+      }
+    });
+    await openCoordinationUntilDate(statusId, cycle.id, untilDateStr, user, notes ?? null);
+    return cycle;
+  }
+
+  const cycle = await prisma.dailyCallCycle.create({
+    data: {
+      dailyCallStatusId: statusId,
+      opened: true,
+      openedBy: user,
+      openedAt: new Date()
+    }
+  });
+
+  if (notes !== undefined && notes !== null) {
+    await prisma.dailyCallStatus.update({
+      where: { id: statusId },
+      data: { notes }
+    });
+  }
+
+  revalidatePath('/');
+  return cycle;
 }
 
 export async function createDailyCallCycle(statusId: number) {
