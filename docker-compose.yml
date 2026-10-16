@@ -11,7 +11,9 @@ services:
       - HOSTNAME=0.0.0.0
       - ACCESS_PIN=${ACCESS_PIN}
       - TZ=Europe/Madrid
-      - N8N_EXCLUSIONS_WEBHOOK_URL=${N8N_EXCLUSIONS_WEBHOOK_URL:-http://100.112.13.34:5678/webhook/parse-exclusiones}
+      - N8N_EXCLUSIONS_WEBHOOK_URL=${N8N_EXCLUSIONS_WEBHOOK_URL:-http://host.docker.internal:5678/webhook/parse-exclusiones}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   tailscale:
     image: tailscale/tailscale:latest

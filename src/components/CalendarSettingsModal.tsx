@@ -432,8 +432,8 @@ export default function CalendarSettingsModal({
     setIsAiAnalyzing(true);
     try {
       const res = await parseExclusionsWithAI(aiRawText.trim(), aiDefaultReason.trim() || 'MILNOF');
-      if (res.error) {
-        alert('Error devuelto por la IA: ' + res.error);
+      if (!res || res.error) {
+        alert(res?.error || 'No se pudo conectar con el servicio de IA');
         return;
       }
 
@@ -830,7 +830,7 @@ export default function CalendarSettingsModal({
                                             className={styles.aiSparkleBtn}
                                             title="Pegar oficio oficial y extraer exclusiones automáticamente con IA"
                                           >
-                                            ✨ Importar Oficio (IA)
+                                            ✨ Importar (Beta)
                                           </button>
                                         </div>
                                         {coord.exclusions && coord.exclusions.length > 0 ? (
@@ -1130,7 +1130,7 @@ export default function CalendarSettingsModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '1.25rem' }}>✨</span>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#1e293b' }}>Importar Exclusiones con Inteligencia Artificial</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#1e293b' }}>Importar Exclusiones (Beta)</h3>
                   <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>Extrae automáticamente fechas, restricciones y franjas horarias de resoluciones oficiales</p>
                 </div>
               </div>
