@@ -3,21 +3,37 @@
 import { useState } from 'react';
 import styles from './ChangelogViewer.module.css';
 
-const CHANGELOG = [
+type ChangelogEntry = {
+  version: string;
+  date: string;
+  summary: string;
+  details?: string[];
+};
+
+const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.0.6',
     date: '08/10/2026',
-    description: 'Implementada personalización avanzada de permisos globales: Ahora es posible configurar los días de antelación para los avisos de caducidad. Se ha rediseñado el sistema de exclusiones de vuelo, permitiendo excluir rangos de días, seleccionar días completos, y definir intervalos de horas dinámicos en los que se permite o prohíbe volar. El panel ahora reacciona en tiempo real, parpadeando en naranja si hay una exclusión próxima en el día actual.'
+    summary: 'Nuevo Sistema de Permisos a Doble Nivel (Restricciones y Coordinaciones)',
+    details: [
+      'Arquitectura de permisos dividida en dos niveles: Restricciones (norma) y Coordinaciones (periodos vigentes).',
+      'Las exclusiones ("agujeros") ahora se asocian a la coordinación en vigor, manteniendo la coherencia histórica.',
+      'Soporte completo para inicio/fin en las coordinaciones, avisando automáticamente en rojo de los "huecos" entre periodos.',
+      'Botón de "Copiar" (📋) integrado para duplicar rápidamente los datos de una coordinación en el formulario y agilizar las renovaciones.',
+      'Vista Gantt y Banner Diario actualizados para calcular las nuevas reglas de negocio al vuelo.',
+      'Rediseño íntegro de la pestaña "Permisos" en Configuración, con diseño por bloques y caja de info didáctica (ℹ️).',
+      'El panel reacciona parpadeando en naranja si hay una alerta inmediata programada para el día actual.'
+    ]
   },
   {
     version: '0.0.5',
     date: '08/10/2026',
-    description: 'Reorganización de la interfaz del cuadro de mandos: se movió el selector de día encima del panel global, se mejoraron los estilos y se corrigieron colores de alerta meteorológica.'
+    summary: 'Reorganización de la interfaz del cuadro de mandos: se movió el selector de día encima del panel global, se mejoraron los estilos y se corrigieron colores de alerta meteorológica.'
   },
   {
     version: '0.0.4',
     date: '06/10/2026',
-    description: 'Integración del sistema de previsión meteorológica y parámetros de viento/lluvia configurables desde los ajustes discretos del dashboard.'
+    summary: 'Integración del sistema de previsión meteorológica y parámetros de viento/lluvia configurables desde los ajustes discretos del dashboard.'
   }
 ];
 
@@ -67,7 +83,21 @@ export default function ChangelogViewer({ currentVersion }: { currentVersion: st
                     <tr key={log.version}>
                       <td className={styles.versionCell}>v{log.version}</td>
                       <td className={styles.dateCell}>{log.date}</td>
-                      <td>{log.description}</td>
+                      <td>
+                        <span style={{ fontWeight: log.details ? 600 : 400 }}>{log.summary}</span>
+                        {log.details && log.details.length > 0 && (
+                          <details style={{ marginTop: '0.5rem' }}>
+                            <summary style={{ cursor: 'pointer', color: '#0284c7', fontSize: '0.85rem', fontWeight: 600, userSelect: 'none' }}>
+                              Ver más detalles
+                            </summary>
+                            <ul style={{ marginTop: '0.5rem', marginBottom: 0, paddingLeft: '1.25rem', fontSize: '0.9rem', color: '#334155' }}>
+                              {log.details.map((detail, idx) => (
+                                <li key={idx} style={{ marginBottom: '0.25rem' }}>{detail}</li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

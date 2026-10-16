@@ -12,7 +12,9 @@ export async function getCalendars() {
       callTargets: true,
       globalPermits: {
         include: {
-          exclusions: true
+          coordinations: {
+            include: { exclusions: true }
+          }
         }
       },
     },
@@ -104,32 +106,66 @@ export async function updateCallTarget(id: number, data: { name?: string; requir
   return target;
 }
 
-// -- Global Permits --
+// -- Global Permits (Restrictions - Level 1) --
 
-export async function addGlobalPermit(calendarId: number, name: string, expirationDate: Date, warningDays: number = 30) {
+export async function addGlobalPermit(calendarId: number, name: string) {
   const permit = await prisma.globalPermit.create({
     data: {
       calendarId,
-      name,
-      expirationDate,
-      warningDays
+      name
     }
   });
   revalidatePath('/');
   return permit;
 }
 
-export async function updateGlobalPermit(id: number, name: string, expirationDate: Date, warningDays: number = 30) {
+export async function updateGlobalPermit(id: number, name: string) {
   const permit = await prisma.globalPermit.update({
     where: { id },
-    data: { name, expirationDate, warningDays }
+    data: { name }
   });
   revalidatePath('/');
   return permit;
 }
 
+export async function deleteGlobalPermit(id: number) {
+  await prisma.globalPermit.delete({ where: { id } });
+  revalidatePath('/');
+}
+
+// -- Permit Coordinations (Level 2) --
+
+export async function addPermitCoordination(globalPermitId: number, startDate: Date | null, expirationDate: Date, warningDays: number = 30) {
+  const coord = await prisma.permitCoordination.create({
+    data: {
+      globalPermitId,
+      startDate,
+      expirationDate,
+      warningDays
+    }
+  });
+  revalidatePath('/');
+  return coord;
+}
+
+export async function updatePermitCoordination(id: number, startDate: Date | null, expirationDate: Date, warningDays: number = 30) {
+  const coord = await prisma.permitCoordination.update({
+    where: { id },
+    data: { startDate, expirationDate, warningDays }
+  });
+  revalidatePath('/');
+  return coord;
+}
+
+export async function deletePermitCoordination(id: number) {
+  await prisma.permitCoordination.delete({ where: { id } });
+  revalidatePath('/');
+}
+
+// -- Permit Exclusions --
+
 export async function addPermitExclusion(
-  globalPermitId: number, 
+  permitCoordinationId: number, 
   startDate: Date, 
   endDate: Date | null = null, 
   ruleType: string = 'DENY_ALL', 
@@ -137,7 +173,7 @@ export async function addPermitExclusion(
   reason: string | null = null
 ) {
   const exclusion = await prisma.permitExclusion.create({
-    data: { globalPermitId, startDate, endDate, ruleType, timeWindowsJson, reason }
+    data: { permitCoordinationId, startDate, endDate, ruleType, timeWindowsJson, reason }
   });
   revalidatePath('/');
   return exclusion;
@@ -145,11 +181,6 @@ export async function addPermitExclusion(
 
 export async function removePermitExclusion(id: number) {
   await prisma.permitExclusion.delete({ where: { id } });
-  revalidatePath('/');
-}
-
-export async function deleteGlobalPermit(id: number) {
-  await prisma.globalPermit.delete({ where: { id } });
   revalidatePath('/');
 }
 
@@ -254,7 +285,11 @@ export async function getGlobalCoordinationsForDate(dateIso?: string) {
       callTargets: true,
       globalPermits: {
         include: {
-          exclusions: true
+          coordinations: {
+            include: {
+              exclusions: true
+            }
+          }
         }
       }
     }

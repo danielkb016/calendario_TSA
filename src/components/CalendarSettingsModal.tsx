@@ -6,6 +6,7 @@ import {
   addZone, updateZone, deleteZone, 
   addCallTarget, updateCallTarget, deleteCallTarget, 
   addGlobalPermit, updateGlobalPermit, deleteGlobalPermit,
+  addPermitCoordination, updatePermitCoordination, deletePermitCoordination,
   addPermitExclusion, removePermitExclusion 
 } from '@/app/actions';
 import styles from './CalendarSettingsModal.module.css';
@@ -19,12 +20,18 @@ type PermitExclusion = {
   reason: string | null;
 };
 
+type PermitCoordination = {
+  id: number;
+  startDate: Date | string | null;
+  expirationDate: Date | string;
+  warningDays: number;
+  exclusions?: PermitExclusion[];
+};
+
 type GlobalPermit = {
   id: number;
   name: string;
-  expirationDate: Date;
-  warningDays: number;
-  exclusions?: PermitExclusion[];
+  coordinations?: PermitCoordination[];
 };
 
 type CallTarget = {
@@ -76,7 +83,9 @@ export default function CalendarSettingsModal({
   const [editingZoneName, setEditingZoneName] = useState('');
 
   // -- Permits Tab State --
+  const [showPermitsInfo, setShowPermitsInfo] = useState(false);
   const [newPermitName, setNewPermitName] = useState('');
+  const [newPermitStartDate, setNewPermitStartDate] = useState('');
   const [newPermitDate, setNewPermitDate] = useState('');
   const [newPermitWarningDays, setNewPermitWarningDays] = useState(30);
 
@@ -221,35 +230,75 @@ export default function CalendarSettingsModal({
   // Permits Actions
   const handleAddPermit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPermitName.trim() || !newPermitDate) return;
+    if (!newPermitName.trim()) return;
     setLoading(true);
     try {
-      await addGlobalPermit(calendar.id, newPermitName.trim(), new Date(newPermitDate), newPermitWarningDays);
+      await addGlobalPermit(calendar.id, newPermitName.trim());
       setNewPermitName('');
-      setNewPermitDate('');
-      setNewPermitWarningDays(30);
       onUpdated();
     } catch (error) {
       console.error(error);
-      alert('Error al añadir el permiso');
+      alert('Error al añadir la restricción');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSaveEditPermit = async (id: number) => {
-    if (!editingPermitName.trim() || !editingPermitDate) return;
+    if (!editingPermitName.trim()) return;
     setLoading(true);
     try {
-      await updateGlobalPermit(id, editingPermitName.trim(), new Date(editingPermitDate), editingPermitWarningDays);
+      await updateGlobalPermit(id, editingPermitName.trim());
       setEditingPermitId(null);
       onUpdated();
     } catch (error) {
       console.error(error);
-      alert('Error al actualizar el permiso');
+      alert('Error al actualizar la restricción');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddCoordination = async (permitId: number) => {
+    if (!newPermitDate) return;
+    setLoading(true);
+    try {
+      const startD = newPermitStartDate ? new Date(newPermitStartDate) : null;
+      await addPermitCoordination(permitId, startD, new Date(newPermitDate), newPermitWarningDays);
+      setNewPermitStartDate('');
+      setNewPermitDate('');
+      setNewPermitWarningDays(30);
+      onUpdated();
+    } catch (error) {
+      console.error(error);
+      alert('Error al añadir la coordinación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCoordination = async (id: number) => {
+    if (!confirm('¿Eliminar esta coordinación?')) return;
+    setLoading(true);
+    try {
+      await deletePermitCoordination(id);
+      onUpdated();
+    } catch (error) {
+      console.error(error);
+      alert('Error al eliminar la coordinación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyCoordination = (coord: any) => {
+    if (coord.startDate) {
+      setNewPermitStartDate(new Date(coord.startDate).toISOString().substring(0, 10));
+    } else {
+      setNewPermitStartDate('');
+    }
+    setNewPermitDate(new Date(coord.expirationDate).toISOString().substring(0, 10));
+    setNewPermitWarningDays(coord.warningDays);
   };
 
   const handleAddExclusion = async (permitId: number) => {
@@ -531,8 +580,34 @@ export default function CalendarSettingsModal({
             {/* --- PERMITS TAB --- */}
             {activeTab === 'permits' && (
               <div className={styles.section}>
-                <h3>Permisos Globales y Caducidades</h3>
-                <p className={styles.helpText}>Añade los permisos globales. Aparecerán en el banner diario y cambiarán de color si están próximos a caducar.</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <h3 style={{ margin: 0 }}>Restricciones y Coordinaciones</h3>
+                  <button 
+                    onClick={() => setShowPermitsInfo(!showPermitsInfo)} 
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: '#0284c7' }}
+                    title="Información sobre cómo funciona esto"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                  </button>
+                </div>
+                <p className={styles.helpText} style={{ marginTop: 0 }}>1º Añade una Restricción (Permiso) y 2º añádele periodos de Coordinación.</p>
+
+                {showPermitsInfo && (
+                  <div style={{ backgroundColor: '#f0f9ff', padding: '1rem', borderRadius: '8px', border: '1px solid #bae6fd', color: '#0369a1', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#0284c7', fontSize: '0.95rem' }}>¿Cómo funciona el sistema de doble nivel?</h4>
+                    <p style={{ margin: '0 0 0.5rem 0' }}>El sistema funciona en <strong>dos niveles</strong> jerárquicos:</p>
+                    <ol style={{ margin: '0 0 0.75rem 1.5rem', padding: 0 }}>
+                      <li style={{ marginBottom: '0.3rem' }}><strong>Nivel 1 (Restricción):</strong> Define la norma o zona afectada (ej. "ZGUAS LECU" o "LEP118"). Actúa como el contenedor general permanente.</li>
+                      <li style={{ marginBottom: '0.3rem' }}><strong>Nivel 2 (Coordinaciones):</strong> Dentro de una restricción, añades los <em>periodos temporales</em> (intervalos) en los que tienes permiso efectivo para volar.</li>
+                    </ol>
+                    <p style={{ margin: '0 0 0.5rem 0' }}><strong>¿Qué pasa si caduca una coordinación?</strong><br />Cuando caduca una coordinación (o si defines una nueva que empieza más adelante, dejando un hueco), el sistema detectará automáticamente esos días "vacíos" sin cobertura y te avisará en rojo (❌ <em>Sin coordinación en fecha...</em>).</p>
+                    <p style={{ margin: 0 }}><strong>Exclusiones (Intermitencias):</strong><br />A veces tienes una coordinación general aprobada para un mes, pero te deniegan el vuelo en días específicos dentro de ese mismo mes (ej. prohibido el día 15). Puedes añadir esas exclusiones (los "agujeros") dentro de tu coordinación activa para que el calendario pinte esos días sueltos en rojo.</p>
+                  </div>
+                )}
 
                 {calendar.globalPermits && calendar.globalPermits.length > 0 ? (
                   <ul className={styles.list}>
@@ -543,163 +618,178 @@ export default function CalendarSettingsModal({
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <input type="text" value={editingPermitName} onChange={e => setEditingPermitName(e.target.value)} className={styles.input} style={{ flex: 1, margin: 0 }} />
-                              <input type="date" value={editingPermitDate} onChange={e => setEditingPermitDate(e.target.value)} className={styles.input} style={{ margin: 0 }} />
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <label style={{ fontSize: '0.85rem' }}>
-                                Aviso antelación: 
-                                <input type="number" value={editingPermitWarningDays} onChange={e => setEditingPermitWarningDays(Number(e.target.value))} className={styles.input} style={{ width: '60px', marginLeft: '0.5rem', margin: 0, display: 'inline-block' }} /> días
-                              </label>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => handleSaveEditPermit(permit.id)} disabled={loading} className={styles.successBtn}>✔️</button>
-                                <button onClick={() => setEditingPermitId(null)} disabled={loading} className={styles.cancelBtn}>❌</button>
-                              </div>
+                              <button onClick={() => handleSaveEditPermit(permit.id)} disabled={loading} className={styles.successBtn}>✔️</button>
+                              <button onClick={() => setEditingPermitId(null)} disabled={loading} className={styles.cancelBtn}>❌</button>
                             </div>
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div style={{ flex: 1 }}>
-                              <strong style={{ color: '#0f172a' }}>{permit.name}</strong>
-                              <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '0.5rem' }}>
-                                Caduca el {new Date(permit.expirationDate).toLocaleDateString()} (aviso {permit.warningDays} días)
-                              </span>
-                              
-                              {/* Exclusions Sub-list */}
-                              <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: '6px' }}>
-                                <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem' }}>Fechas Excluidas (No se permite volar):</div>
-                                {permit.exclusions && permit.exclusions.length > 0 ? (
-                                  <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>
-                                    {permit.exclusions.map(ex => {
-                                      const startStr = new Date(ex.startDate).toLocaleDateString();
-                                      const endStr = ex.endDate ? new Date(ex.endDate).toLocaleDateString() : null;
-                                      const dateText = endStr ? `Del ${startStr} al ${endStr}` : startStr;
-                                      let ruleText = '';
-                                      if (ex.ruleType === 'DENY_ALL') ruleText = ' (Todo el día)';
-                                      else {
-                                        const tw = ex.timeWindowsJson ? JSON.parse(ex.timeWindowsJson) : [];
-                                        const twStr = tw.map((w:any) => `${w.start}-${w.end}`).join(', ');
-                                        if (ex.ruleType === 'ALLOW_WINDOWS') ruleText = ` (Solo permitido: ${twStr})`;
-                                        if (ex.ruleType === 'DENY_WINDOWS') ruleText = ` (Solo prohibido: ${twStr})`;
-                                      }
-                                      return (
-                                        <li key={ex.id} style={{ marginBottom: '0.2rem' }}>
-                                          {dateText}{ruleText} - {ex.reason || 'Sin motivo'}
-                                          <button onClick={() => handleDeleteExclusion(ex.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', marginLeft: '0.5rem' }}>✖</button>
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                ) : (
-                                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Ninguna fecha excluida.</div>
-                                )}
-                                
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
-                                  <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
-                                    <input type="checkbox" checked={newExclusionIsRange} onChange={e => setNewExclusionIsRange(e.target.checked)} /> Rango de días
-                                  </label>
-                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <input type="date" value={newExclusionStartDate} onChange={e => setNewExclusionStartDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                    {newExclusionIsRange && (
-                                      <>
-                                        <span style={{ fontSize: '0.8rem' }}>al</span>
-                                        <input type="date" value={newExclusionEndDate} onChange={e => setNewExclusionEndDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                      </>
-                                    )}
-                                    <select value={newExclusionRuleType} onChange={e => setNewExclusionRuleType(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }}>
-                                      <option value="DENY_ALL">Prohibir todo el día</option>
-                                      <option value="ALLOW_WINDOWS">SÍ se puede volar en horas...</option>
-                                      <option value="DENY_WINDOWS">NO se puede volar en horas...</option>
-                                    </select>
-                                  </div>
-                                  
-                                  {newExclusionRuleType !== 'DENY_ALL' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cbd5e1' }}>
-                                      {newExclusionTimeWindows.map((tw, idx) => (
-                                        <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                          <input type="time" value={tw.start} onChange={e => {
-                                            const newW = [...newExclusionTimeWindows];
-                                            newW[idx].start = e.target.value;
-                                            setNewExclusionTimeWindows(newW);
-                                          }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                          <span style={{ fontSize: '0.8rem' }}>a</span>
-                                          <input type="time" value={tw.end} onChange={e => {
-                                            const newW = [...newExclusionTimeWindows];
-                                            newW[idx].end = e.target.value;
-                                            setNewExclusionTimeWindows(newW);
-                                          }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                          {idx === newExclusionTimeWindows.length - 1 && (
-                                            <button onClick={() => setNewExclusionTimeWindows([...newExclusionTimeWindows, {start: '', end: ''}])} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>+</button>
-                                          )}
-                                          {newExclusionTimeWindows.length > 1 && (
-                                            <button onClick={() => {
-                                              const newW = [...newExclusionTimeWindows];
-                                              newW.splice(idx, 1);
-                                              setNewExclusionTimeWindows(newW);
-                                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>×</button>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                    <input type="text" placeholder="Motivo (opcional)..." value={newExclusionReason} onChange={e => setNewExclusionReason(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem', flex: 1 }} />
-                                    <button onClick={() => handleAddExclusion(permit.id)} disabled={!newExclusionStartDate || loading || (newExclusionIsRange && !newExclusionEndDate)} className={styles.primaryBtn} style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>Añadir</button>
-                                  </div>
-                                </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div style={{ flex: 1 }}>
+                                <strong style={{ color: '#0f172a', fontSize: '1.1rem' }}>{permit.name}</strong>
                               </div>
-                              
+                              <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                                <button onClick={() => {
+                                  setEditingPermitId(permit.id);
+                                  setEditingPermitName(permit.name);
+                                }} disabled={loading} className={styles.iconBtn} title="Editar nombre">✏️</button>
+                                <button onClick={() => handleDeletePermit(permit.id)} disabled={loading} className={styles.iconBtn} title="Eliminar restricción">🗑️</button>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
-                              <button onClick={() => {
-                                setEditingPermitId(permit.id);
-                                setEditingPermitName(permit.name);
-                                setEditingPermitDate(new Date(permit.expirationDate).toISOString().split('T')[0]);
-                                setEditingPermitWarningDays(permit.warningDays);
-                              }} disabled={loading} className={styles.iconBtn} title="Editar permiso">✏️</button>
-                              <button onClick={() => handleDeletePermit(permit.id)} disabled={loading} className={styles.iconBtn} title="Eliminar permiso">🗑️</button>
+                            
+                            {/* Coordinations Sub-list */}
+                            <div style={{ marginTop: '1rem', padding: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+                              <h4 style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '0.5rem' }}>Periodos de Coordinación:</h4>
+                              {permit.coordinations && permit.coordinations.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                  {permit.coordinations.map(coord => (
+                                    <div key={coord.id} style={{ backgroundColor: 'rgba(0,0,0,0.03)', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                          <span style={{ fontWeight: 600 }}>
+                                            {coord.startDate ? `Del ${new Date(coord.startDate).toLocaleDateString()} al ` : `Hasta el `}
+                                            {new Date(coord.expirationDate).toLocaleDateString()}
+                                          </span>
+                                          <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '0.5rem' }}>(aviso {coord.warningDays} días)</span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                          <button onClick={() => handleCopyCoordination(coord)} className={styles.iconBtn} title="Copiar datos para nueva coordinación">📋</button>
+                                          <button onClick={() => handleDeleteCoordination(coord.id)} className={styles.iconBtn} title="Eliminar coordinación">🗑️</button>
+                                        </div>
+                                      </div>
+
+                                      {/* Exclusions Sub-list */}
+                                      <div style={{ marginTop: '0.75rem' }}>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.2rem', color: '#b91c1c' }}>Fechas Excluidas (No se permite volar):</div>
+                                        {coord.exclusions && coord.exclusions.length > 0 ? (
+                                          <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>
+                                            {coord.exclusions.map(ex => {
+                                              const startStr = new Date(ex.startDate).toLocaleDateString();
+                                              const endStr = ex.endDate ? new Date(ex.endDate).toLocaleDateString() : null;
+                                              const dateText = endStr ? `Del ${startStr} al ${endStr}` : startStr;
+                                              let ruleText = '';
+                                              if (ex.ruleType === 'DENY_ALL') ruleText = ' (Todo el día)';
+                                              else {
+                                                const tw = ex.timeWindowsJson ? JSON.parse(ex.timeWindowsJson) : [];
+                                                const twStr = tw.map((w:any) => `${w.start}-${w.end}`).join(', ');
+                                                if (ex.ruleType === 'ALLOW_WINDOWS') ruleText = ` (Solo permitido: ${twStr})`;
+                                                if (ex.ruleType === 'DENY_WINDOWS') ruleText = ` (Solo prohibido: ${twStr})`;
+                                              }
+                                              return (
+                                                <li key={ex.id} style={{ marginBottom: '0.2rem' }}>
+                                                  {dateText}{ruleText} - {ex.reason || 'Sin motivo'}
+                                                  <button onClick={() => handleDeleteExclusion(ex.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', marginLeft: '0.5rem' }}>✖</button>
+                                                </li>
+                                              );
+                                            })}
+                                          </ul>
+                                        ) : (
+                                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Ninguna fecha excluida en esta coordinación.</div>
+                                        )}
+                                        
+                                        {/* Add Exclusion Form */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', borderTop: '1px dotted #cbd5e1', paddingTop: '0.75rem' }}>
+                                          <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
+                                            <input type="checkbox" checked={newExclusionIsRange} onChange={e => setNewExclusionIsRange(e.target.checked)} /> Rango de días
+                                          </label>
+                                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            <input type="date" value={newExclusionStartDate} onChange={e => setNewExclusionStartDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                            {newExclusionIsRange && (
+                                              <>
+                                                <span style={{ fontSize: '0.8rem' }}>al</span>
+                                                <input type="date" value={newExclusionEndDate} onChange={e => setNewExclusionEndDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                              </>
+                                            )}
+                                            <select value={newExclusionRuleType} onChange={e => setNewExclusionRuleType(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }}>
+                                              <option value="DENY_ALL">Prohibir todo el día</option>
+                                              <option value="ALLOW_WINDOWS">SÍ se puede volar en horas...</option>
+                                              <option value="DENY_WINDOWS">NO se puede volar en horas...</option>
+                                            </select>
+                                          </div>
+                                          
+                                          {newExclusionRuleType !== 'DENY_ALL' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cbd5e1' }}>
+                                              {newExclusionTimeWindows.map((tw, idx) => (
+                                                <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                  <input type="time" value={tw.start} onChange={e => {
+                                                    const newW = [...newExclusionTimeWindows];
+                                                    newW[idx].start = e.target.value;
+                                                    setNewExclusionTimeWindows(newW);
+                                                  }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                                  <span style={{ fontSize: '0.8rem' }}>a</span>
+                                                  <input type="time" value={tw.end} onChange={e => {
+                                                    const newW = [...newExclusionTimeWindows];
+                                                    newW[idx].end = e.target.value;
+                                                    setNewExclusionTimeWindows(newW);
+                                                  }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                                                  {idx === newExclusionTimeWindows.length - 1 && (
+                                                    <button onClick={() => setNewExclusionTimeWindows([...newExclusionTimeWindows, {start: '', end: ''}])} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>+</button>
+                                                  )}
+                                                  {newExclusionTimeWindows.length > 1 && (
+                                                    <button onClick={() => {
+                                                      const newW = [...newExclusionTimeWindows];
+                                                      newW.splice(idx, 1);
+                                                      setNewExclusionTimeWindows(newW);
+                                                    }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>×</button>
+                                                  )}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            <input type="text" placeholder="Motivo (opcional)..." value={newExclusionReason} onChange={e => setNewExclusionReason(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem', flex: 1 }} />
+                                            <button onClick={() => handleAddExclusion(coord.id)} disabled={!newExclusionStartDate || loading || (newExclusionIsRange && !newExclusionEndDate)} className={styles.primaryBtn} style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>+ Exclusión</button>
+                                          </div>
+                                        </div>
+
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Aún no hay coordinaciones añadidas.</p>
+                              )}
+
+                              {/* Add Coordination Form */}
+                              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '6px', flexWrap: 'wrap' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Inicia (opcional):</label>
+                                <input type="date" value={newPermitStartDate} onChange={e => setNewPermitStartDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.3rem', fontSize: '0.85rem' }} />
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.5rem' }}>Caduca el:</label>
+                                <input type="date" value={newPermitDate} onChange={e => setNewPermitDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.3rem', fontSize: '0.85rem' }} />
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.5rem' }}>Aviso (días):</label>
+                                <input type="number" value={newPermitWarningDays} onChange={e => setNewPermitWarningDays(Number(e.target.value))} className={styles.input} style={{ margin: 0, width: '60px', padding: '0.3rem', fontSize: '0.85rem' }} />
+                                <button onClick={() => handleAddCoordination(permit.id)} disabled={loading || !newPermitDate} className={styles.primaryBtn} style={{ padding: '0.3rem 0.8rem', fontSize: '0.85rem' }}>+ Coordinación</button>
+                              </div>
                             </div>
+
                           </div>
                         )}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className={styles.empty}>No hay permisos globales añadidos.</p>
+                  <p className={styles.empty}>No hay Restricciones / Permisos añadidos.</p>
                 )}
 
-                <h3 style={{ marginTop: '2.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>Añadir Nuevo Permiso</h3>
+                <h3 style={{ marginTop: '2.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>Añadir Nueva Restricción (Permiso)</h3>
                 <form onSubmit={handleAddPermit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem', backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 2 }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>Nombre del permiso</label>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>Nombre de la Restricción</label>
                       <input 
                         type="text" 
                         value={newPermitName} 
                         onChange={e => setNewPermitName(e.target.value)} 
-                        placeholder="Ej: Permiso ENAIRE..."
-                        className={styles.input}
-                        style={{ margin: 0, width: '100%' }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>Fecha de caducidad</label>
-                      <input
-                        type="date"
-                        value={newPermitDate}
-                        onChange={e => setNewPermitDate(e.target.value)}
+                        placeholder="Ej: ZGUAS LECU, Permiso ENAIRE..."
                         className={styles.input}
                         style={{ margin: 0, width: '100%' }}
                       />
                     </div>
                   </div>
                   
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
-                    <label style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 600 }}>Días de preaviso de caducidad:</span>
-                      <input type="number" value={newPermitWarningDays} onChange={e => setNewPermitWarningDays(Number(e.target.value))} className={styles.input} style={{ width: '80px', margin: 0, textAlign: 'center' }} /> días
-                    </label>
-                    <button type="submit" disabled={loading || !newPermitName.trim() || !newPermitDate} className={styles.primaryBtn} style={{ padding: '0.5rem 1.5rem', fontWeight: 'bold' }}>
-                      + Añadir Permiso
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                    <button type="submit" disabled={loading || !newPermitName.trim()} className={styles.primaryBtn} style={{ padding: '0.5rem 1.5rem', fontWeight: 'bold' }}>
+                      + Añadir Restricción
                     </button>
                   </div>
                 </form>
