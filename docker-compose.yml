@@ -11,6 +11,7 @@ services:
       - HOSTNAME=0.0.0.0
       - ACCESS_PIN=${ACCESS_PIN}
       - TZ=Europe/Madrid
+      - N8N_EXCLUSIONS_WEBHOOK_URL=${N8N_EXCLUSIONS_WEBHOOK_URL:-http://100.112.13.34:5678/webhook/parse-exclusiones}
 
   tailscale:
     image: tailscale/tailscale:latest
