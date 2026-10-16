@@ -184,6 +184,80 @@ export async function removePermitExclusion(id: number) {
   revalidatePath('/');
 }
 
+export type BulkExclusionItem = {
+  startDate: string | Date;
+  endDate?: string | Date | null;
+  ruleType: string;
+  timeWindowsJson?: string | null;
+  reason?: string | null;
+};
+
+export async function addMultiplePermitExclusions(
+  permitCoordinationId: number,
+  exclusions: BulkExclusionItem[]
+) {
+  if (!exclusions || exclusions.length === 0) return [];
+
+  const created = await prisma.$transaction(
+    exclusions.map(ex => 
+      prisma.permitExclusion.create({
+        data: {
+          permitCoordinationId,
+          startDate: new Date(ex.startDate),
+          endDate: ex.endDate ? new Date(ex.endDate) : null,
+          ruleType: ex.ruleType || 'DENY_ALL',
+          timeWindowsJson: ex.timeWindowsJson || null,
+          reason: ex.reason || null
+        }
+      })
+    )
+  );
+
+  revalidatePath('/');
+  return created;
+}
+
+export async function parseExclusionsWithAI(text: string, defaultReason: string = 'MILNOF') {
+  const webhookUrl = process.env.N8N_EXCLUSIONS_WEBHOOK_URL || 'http://100.112.13.34:5678/webhook/parse-exclusiones';
+
+  const res = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      text,
+      defaultReason
+    }),
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => '');
+    throw new Error(`El servicio n8n respondió con error (${res.status}): ${errorText || res.statusText}`);
+  }
+
+  let data = await res.json();
+
+  if (Array.isArray(data) && data.length > 0) {
+    data = data[0];
+  }
+
+  if (data && typeof data.respuesta === 'string') {
+    try {
+      let raw = data.respuesta;
+      const match = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match) raw = match[1];
+      const parsed = JSON.parse(raw.trim());
+      data = { ...data, ...parsed };
+    } catch (e) {
+      console.warn('No se pudo parsear data.respuesta:', e);
+    }
+  }
+
+  return data;
+}
+
 // -- Flights --
 
 export async function getFlights(calendarId: number) {
