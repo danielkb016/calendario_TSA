@@ -184,6 +184,128 @@ export async function removePermitExclusion(id: number) {
   revalidatePath('/');
 }
 
+export type BulkExclusionItem = {
+  startDate: string | Date;
+  endDate?: string | Date | null;
+  ruleType: string;
+  timeWindowsJson?: string | null;
+  reason?: string | null;
+};
+
+export async function addMultiplePermitExclusions(
+  permitCoordinationId: number,
+  exclusions: BulkExclusionItem[]
+) {
+  if (!exclusions || exclusions.length === 0) return [];
+
+  const created = await prisma.$transaction(
+    exclusions.map(ex => 
+      prisma.permitExclusion.create({
+        data: {
+          permitCoordinationId,
+          startDate: new Date(ex.startDate),
+          endDate: ex.endDate ? new Date(ex.endDate) : null,
+          ruleType: ex.ruleType || 'DENY_ALL',
+          timeWindowsJson: ex.timeWindowsJson || null,
+          reason: ex.reason || null
+        }
+      })
+    )
+  );
+
+  revalidatePath('/');
+  return created;
+}
+
+export async function parseExclusionsWithAI(text: string, defaultReason: string = 'MILNOF') {
+  const candidateUrls: string[] = [];
+
+  if (process.env.N8N_EXCLUSIONS_WEBHOOK_URL) {
+    candidateUrls.push(process.env.N8N_EXCLUSIONS_WEBHOOK_URL);
+  }
+  
+  const defaultCandidates = [
+    'http://host.docker.internal:5678/webhook/parse-exclusiones',
+    'http://100.112.13.34:5678/webhook/parse-exclusiones',
+    'http://localhost:5678/webhook/parse-exclusiones',
+    'http://172.17.0.1:5678/webhook/parse-exclusiones'
+  ];
+
+  for (const url of defaultCandidates) {
+    if (!candidateUrls.includes(url)) {
+      candidateUrls.push(url);
+    }
+  }
+
+  let lastError: any = null;
+  let responseData: any = null;
+
+  for (const webhookUrl of candidateUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text,
+          defaultReason
+        }),
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (res.status === 404) {
+        return {
+          error: 'El webhook de n8n respondió 404. El flujo no está activado o la ruta no existe. Asegúrate de activar el interruptor "Active" arriba a la derecha en n8n y pulsar Guardar (Save).'
+        };
+      }
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => '');
+        return {
+          error: `El servicio n8n respondió con error (${res.status}): ${errorText || res.statusText}`
+        };
+      }
+
+      let data = await res.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        data = data[0];
+      }
+
+      if (data && typeof data.respuesta === 'string') {
+        try {
+          let raw = data.respuesta;
+          const match = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (match) raw = match[1];
+          const parsed = JSON.parse(raw.trim());
+          data = { ...data, ...parsed };
+        } catch (e) {
+          console.warn('No se pudo parsear data.respuesta:', e);
+        }
+      }
+
+      responseData = data;
+      break;
+    } catch (err: any) {
+      lastError = err;
+    }
+  }
+
+  if (responseData) {
+    return responseData;
+  }
+
+  return {
+    error: `No se pudo conectar con n8n (${lastError?.message || 'Error de red'}). Revisa que n8n esté iniciado y accesible.`
+  };
+}
+
 // -- Flights --
 
 export async function getFlights(calendarId: number) {

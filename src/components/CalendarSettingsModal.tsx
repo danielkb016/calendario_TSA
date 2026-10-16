@@ -7,7 +7,8 @@ import {
   addCallTarget, updateCallTarget, deleteCallTarget, 
   addGlobalPermit, updateGlobalPermit, deleteGlobalPermit,
   addPermitCoordination, updatePermitCoordination, deletePermitCoordination,
-  addPermitExclusion, removePermitExclusion 
+  addPermitExclusion, removePermitExclusion,
+  addMultiplePermitExclusions, parseExclusionsWithAI 
 } from '@/app/actions';
 import styles from './CalendarSettingsModal.module.css';
 
@@ -100,6 +101,23 @@ export default function CalendarSettingsModal({
   const [newExclusionRuleType, setNewExclusionRuleType] = useState('DENY_ALL'); // DENY_ALL, ALLOW_WINDOWS, DENY_WINDOWS
   const [newExclusionTimeWindows, setNewExclusionTimeWindows] = useState<{start: string, end: string}[]>([{start: '', end: ''}]);
   const [newExclusionReason, setNewExclusionReason] = useState('');
+
+  // -- AI Exclusions Import State --
+  const [aiModalCoordId, setAiModalCoordId] = useState<number | null>(null);
+  const [aiRawText, setAiRawText] = useState('');
+  const [aiDefaultReason, setAiDefaultReason] = useState('MILNOF-1793');
+  const [aiGroupConsecutive, setAiGroupConsecutive] = useState(true);
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
+  const [aiExtractedCoordination, setAiExtractedCoordination] = useState<{ startDate?: string | null; expirationDate?: string | null } | null>(null);
+  const [aiRawItems, setAiRawItems] = useState<any[]>([]);
+  const [aiPreviewItems, setAiPreviewItems] = useState<{
+    selected: boolean;
+    startDate: string;
+    endDate: string | null;
+    ruleType: string;
+    timeWindows: { start: string; end: string }[] | null;
+    reason: string;
+  }[]>([]);
 
   // -- Coordination / Calls Tab State --
   const [requiresDaily, setRequiresDaily] = useState(calendar.requiresDailyCoordination);
@@ -334,6 +352,151 @@ export default function CalendarSettingsModal({
     } catch (error) {
       console.error(error);
       alert('Error al eliminar exclusión');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- AI EXCLUSIONS IMPORT HANDLERS ---
+  const processItemsWithGrouping = (items: any[], group: boolean, defaultReasonVal: string) => {
+    if (!items || items.length === 0) return [];
+    if (!group) {
+      return items.map(it => ({
+        selected: true,
+        startDate: it.startDate,
+        endDate: it.endDate || null,
+        ruleType: it.ruleType || 'DENY_ALL',
+        timeWindows: it.timeWindows || null,
+        reason: it.reason || defaultReasonVal || 'MILNOF'
+      }));
+    }
+
+    const sorted = [...items].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    const grouped: {
+      selected: boolean;
+      startDate: string;
+      endDate: string | null;
+      ruleType: string;
+      timeWindows: { start: string; end: string }[] | null;
+      reason: string;
+    }[] = [];
+    
+    let current = {
+      selected: true,
+      startDate: sorted[0].startDate,
+      endDate: sorted[0].endDate || null,
+      ruleType: sorted[0].ruleType || 'DENY_ALL',
+      timeWindows: sorted[0].timeWindows || null,
+      reason: sorted[0].reason || defaultReasonVal || 'MILNOF'
+    };
+
+    for (let i = 1; i < sorted.length; i++) {
+      const next = {
+        selected: true,
+        startDate: sorted[i].startDate,
+        endDate: sorted[i].endDate || null,
+        ruleType: sorted[i].ruleType || 'DENY_ALL',
+        timeWindows: sorted[i].timeWindows || null,
+        reason: sorted[i].reason || defaultReasonVal || 'MILNOF'
+      };
+
+      const sameRule = current.ruleType === next.ruleType;
+      const sameReason = (current.reason || '') === (next.reason || '');
+      const sameWindows = JSON.stringify(current.timeWindows || []) === JSON.stringify(next.timeWindows || []);
+
+      const curEnd = new Date(current.endDate || current.startDate);
+      const nxtStart = new Date(next.startDate);
+      const diffDays = Math.round((nxtStart.getTime() - curEnd.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (sameRule && sameReason && sameWindows && diffDays === 1) {
+        current.endDate = next.endDate || next.startDate;
+      } else {
+        grouped.push(current);
+        current = next;
+      }
+    }
+    grouped.push(current);
+    return grouped;
+  };
+
+  const handleOpenAiModal = (coordId: number) => {
+    setAiModalCoordId(coordId);
+    setAiRawText('');
+    setAiExtractedCoordination(null);
+    setAiRawItems([]);
+    setAiPreviewItems([]);
+  };
+
+  const handleAnalyzeAiText = async () => {
+    if (!aiRawText.trim()) return;
+    setIsAiAnalyzing(true);
+    try {
+      const res = await parseExclusionsWithAI(aiRawText.trim(), aiDefaultReason.trim() || 'MILNOF');
+      if (!res || res.error) {
+        alert(res?.error || 'No se pudo conectar con el servicio de IA');
+        return;
+      }
+
+      const rawExclusions = res.exclusions || [];
+      if (rawExclusions.length === 0) {
+        alert('La IA no ha detectado ninguna fecha con exclusión o reparo en el texto facilitado.');
+      }
+      setAiRawItems(rawExclusions);
+      setAiExtractedCoordination(res.coordination || null);
+
+      const processed = processItemsWithGrouping(rawExclusions, aiGroupConsecutive, aiDefaultReason.trim() || 'MILNOF');
+      setAiPreviewItems(processed);
+    } catch (err: any) {
+      console.error(err);
+      alert('Error al analizar texto con IA: ' + (err.message || 'Error de conexión'));
+    } finally {
+      setIsAiAnalyzing(false);
+    }
+  };
+
+  const handleToggleGroupOption = (group: boolean) => {
+    setAiGroupConsecutive(group);
+    if (aiRawItems.length > 0) {
+      setAiPreviewItems(processItemsWithGrouping(aiRawItems, group, aiDefaultReason.trim() || 'MILNOF'));
+    }
+  };
+
+  const handleToggleSelectAll = (select: boolean) => {
+    setAiPreviewItems(prev => prev.map(it => ({ ...it, selected: select })));
+  };
+
+  const handleToggleSelectItem = (idx: number) => {
+    setAiPreviewItems(prev => prev.map((it, i) => i === idx ? { ...it, selected: !it.selected } : it));
+  };
+
+  const handleDeletePreviewItem = (idx: number) => {
+    setAiPreviewItems(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleSaveAiExclusions = async () => {
+    if (!aiModalCoordId) return;
+    const selected = aiPreviewItems.filter(it => it.selected);
+    if (selected.length === 0) {
+      alert('Debes seleccionar al menos una exclusión para guardar.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const bulkData = selected.map(it => ({
+        startDate: it.startDate,
+        endDate: it.endDate || null,
+        ruleType: it.ruleType,
+        timeWindowsJson: it.timeWindows && it.timeWindows.length > 0 ? JSON.stringify(it.timeWindows) : null,
+        reason: it.reason
+      }));
+
+      await addMultiplePermitExclusions(aiModalCoordId, bulkData);
+      setAiModalCoordId(null);
+      onUpdated();
+    } catch (err: any) {
+      console.error(err);
+      alert('Error al guardar exclusiones: ' + (err.message || 'Error desconocido'));
     } finally {
       setLoading(false);
     }
@@ -659,7 +822,17 @@ export default function CalendarSettingsModal({
 
                                       {/* Exclusions Sub-list */}
                                       <div style={{ marginTop: '0.75rem' }}>
-                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.2rem', color: '#b91c1c' }}>Fechas Excluidas (No se permite volar):</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b91c1c' }}>Fechas Excluidas (No se permite volar):</div>
+                                          <button 
+                                            type="button"
+                                            onClick={() => handleOpenAiModal(coord.id)} 
+                                            className={styles.aiSparkleBtn}
+                                            title="Pegar oficio oficial y extraer exclusiones automáticamente con IA"
+                                          >
+                                            ✨ Importar (Beta)
+                                          </button>
+                                        </div>
                                         {coord.exclusions && coord.exclusions.length > 0 ? (
                                           <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>
                                             {coord.exclusions.map(ex => {
@@ -948,6 +1121,193 @@ export default function CalendarSettingsModal({
           </div>
         </div>
       </div>
+
+      {/* Modal de Importación IA */}
+      {aiModalCoordId !== null && (
+        <div className={styles.aiSubModalOverlay} onClick={() => setAiModalCoordId(null)}>
+          <div className={styles.aiSubModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.aiSubModalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>✨</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#1e293b' }}>Importar Exclusiones (Beta)</h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>Extrae automáticamente fechas, restricciones y franjas horarias de resoluciones oficiales</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setAiModalCoordId(null)} 
+                className={styles.closeBtn}
+                title="Cerrar ventana"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className={styles.aiSubModalBody}>
+              {/* Opciones de extracción */}
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '0.6rem 0.75rem', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>Motivo / Expediente:</label>
+                  <input 
+                    type="text" 
+                    value={aiDefaultReason} 
+                    onChange={e => setAiDefaultReason(e.target.value)} 
+                    placeholder="Ej. MILNOF-1793" 
+                    className={styles.input} 
+                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', width: '130px', margin: 0 }} 
+                  />
+                </div>
+                <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer', color: '#334155', fontWeight: 500 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={aiGroupConsecutive} 
+                    onChange={e => handleToggleGroupOption(e.target.checked)} 
+                  /> 
+                  Agrupar días consecutivos (ej. Del 06/10 al 07/10)
+                </label>
+              </div>
+
+              {/* Textarea del Oficio */}
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '0.3rem' }}>
+                  Texto de la Resolución / Oficio de Vuelo:
+                </label>
+                <textarea 
+                  className={styles.aiTextarea} 
+                  rows={5} 
+                  value={aiRawText} 
+                  onChange={e => setAiRawText(e.target.value)} 
+                  placeholder="Pega aquí el texto oficial. Ejemplo:&#10;SE AUTORIZAN dichos vuelos durante el periodo del 24 de septiembre al 08 de octubre de 2026...&#10;- 25 de septiembre de 2026.&#10;- 29 de septiembre de 2026. Autorizado a partir de las 18:00 horas..."
+                />
+              </div>
+
+              {/* Botón de análisis */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={handleAnalyzeAiText} 
+                  disabled={isAiAnalyzing || !aiRawText.trim()} 
+                  className={styles.primaryBtn}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+                >
+                  {isAiAnalyzing ? (
+                    <>⏳ Analizando texto con IA...</>
+                  ) : (
+                    <>🔍 Analizar Texto con IA</>
+                  )}
+                </button>
+              </div>
+
+              {/* Previsualización de resultados */}
+              {aiPreviewItems.length > 0 && (
+                <div className={styles.aiPreviewContainer}>
+                  {aiExtractedCoordination && (
+                    <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '0.5rem 0.75rem', fontSize: '0.8rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>📅</span>
+                      <span>
+                        <strong>Periodo de coordinación detectado:</strong>{' '}
+                        {aiExtractedCoordination.startDate ? `Del ${aiExtractedCoordination.startDate} al ` : ''}
+                        {aiExtractedCoordination.expirationDate || 'No especificado'}
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+                      Exclusiones detectadas ({aiPreviewItems.filter(it => it.selected).length} de {aiPreviewItems.length} seleccionadas):
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => handleToggleSelectAll(true)} 
+                        style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Marcar todas
+                      </button>
+                      <span style={{ color: '#cbd5e1' }}>|</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleToggleSelectAll(false)} 
+                        style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Desmarcar todas
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto' }}>
+                    {aiPreviewItems.map((item, idx) => {
+                      const startFmt = item.startDate ? item.startDate.split('-').reverse().join('/') : '';
+                      const endFmt = item.endDate ? item.endDate.split('-').reverse().join('/') : null;
+                      const dateDisplay = endFmt ? `Del ${startFmt} al ${endFmt}` : startFmt;
+
+                      let ruleBadge = <span className={styles.badgeDeny}>Prohibido todo el día</span>;
+                      if (item.ruleType === 'ALLOW_WINDOWS') {
+                        const twStr = item.timeWindows?.map(w => `${w.start}-${w.end}`).join(', ') || '';
+                        ruleBadge = <span className={styles.badgeAllow}>Solo permitido: {twStr}</span>;
+                      } else if (item.ruleType === 'DENY_WINDOWS') {
+                        const twStr = item.timeWindows?.map(w => `${w.start}-${w.end}`).join(', ') || '';
+                        ruleBadge = <span className={styles.badgeDenyWindows}>Prohibido: {twStr}</span>;
+                      }
+
+                      return (
+                        <div key={idx} className={styles.aiPreviewItem} style={{ opacity: item.selected ? 1 : 0.5 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flex: 1 }}>
+                            <input 
+                              type="checkbox" 
+                              checked={item.selected} 
+                              onChange={() => handleToggleSelectItem(idx)} 
+                              style={{ cursor: 'pointer' }}
+                            />
+                            <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>
+                              {dateDisplay}
+                            </span>
+                            {ruleBadge}
+                            <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: 'auto' }}>
+                              {item.reason}
+                            </span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => handleDeletePreviewItem(idx)} 
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.2rem' }}
+                            title="Descartar esta fecha"
+                          >
+                            ✖
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Botones de acción modal */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setAiModalCoordId(null)} 
+                  className={styles.cancelBtn}
+                  style={{ padding: '0.4rem 0.9rem', fontSize: '0.85rem' }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSaveAiExclusions} 
+                  disabled={loading || aiPreviewItems.filter(it => it.selected).length === 0} 
+                  className={styles.successBtn}
+                  style={{ padding: '0.4rem 1.1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  {loading ? 'Guardando...' : `💾 Guardar ${aiPreviewItems.filter(it => it.selected).length} Exclusiones`}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
