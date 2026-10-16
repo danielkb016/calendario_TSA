@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { updateDailyCallStatus, updateDailyCallCycle, createDailyCallCycle, deleteDailyCallCycle, openCoordinationUntilDate, deleteFutureDailyCallCycles } from '@/app/actions';
+import { 
+  updateDailyCallStatus, 
+  updateDailyCallCycle, 
+  openNewDailyCallCycle,
+  deleteDailyCallCycle, 
+  openCoordinationUntilDate, 
+  deleteFutureDailyCallCycles 
+} from '@/app/actions';
 import styles from './OpCoordinationModal.module.css';
 
 type Operator = { id: number; name: string; };
@@ -52,7 +59,13 @@ export default function OpCoordinationModal({
   const [keepOpen, setKeepOpen] = useState(false);
   const [untilDate, setUntilDate] = useState('');
 
-  const existingCycle = cycleId ? status.cycles?.find(c => c.id === cycleId) : null;
+  const cycles = status.cycles ? [...status.cycles].sort((a, b) => a.id - b.id) : [];
+  const activeOpenCycle = cycles.find(c => c.opened && !c.closed);
+  const targetCycle = cycleId 
+    ? (cycles.find(c => c.id === cycleId) || null) 
+    : (activeOpenCycle || null);
+  const existingCycle = targetCycle;
+  const isCreatingNew = !existingCycle;
 
   const handleAction = async (action: 'open' | 'close' | 'undo_open' | 'undo_close') => {
     if ((action === 'open' || action === 'close') && !selectedUser) return;
@@ -60,33 +73,33 @@ export default function OpCoordinationModal({
     const user = selectedUser === 'Otro' ? customUser : selectedUser;
     
     try {
-      let targetCycleId = cycleId;
-
-      if (!targetCycleId && (action === 'open' || action === 'close')) {
-        // Create new cycle first
-        const newCycle = await createDailyCallCycle(status.id);
-        targetCycleId = newCycle.id;
-      }
-
-      if (!targetCycleId) return;
+      const targetCycleId = existingCycle ? existingCycle.id : cycleId;
 
       if (action === 'open') {
-        if (keepOpen && untilDate) {
-          await openCoordinationUntilDate(status.id, targetCycleId, untilDate, user, notes);
+        if (!targetCycleId) {
+          await openNewDailyCallCycle(status.id, user, keepOpen && untilDate ? untilDate : undefined, notes);
         } else {
-          await updateDailyCallCycle(targetCycleId, {
-            opened: true,
-            openedBy: user,
-            openedAt: new Date(),
-          });
+          if (keepOpen && untilDate) {
+            await openCoordinationUntilDate(status.id, targetCycleId, untilDate, user, notes);
+          } else {
+            await updateDailyCallCycle(targetCycleId, {
+              opened: true,
+              openedBy: user,
+              openedAt: new Date(),
+            });
+          }
         }
       } else if (action === 'close') {
-        await updateDailyCallCycle(targetCycleId, {
-          closed: true,
-          closedBy: user,
-          closedAt: new Date(),
-        });
+        const closeTargetId = targetCycleId || (activeOpenCycle ? activeOpenCycle.id : null);
+        if (closeTargetId) {
+          await updateDailyCallCycle(closeTargetId, {
+            closed: true,
+            closedBy: user,
+            closedAt: new Date(),
+          });
+        }
       } else if (action === 'undo_open') {
+        if (!targetCycleId) return;
         if (!confirm('¿Seguro que quieres anular la apertura?')) { setLoading(false); return; }
         await updateDailyCallCycle(targetCycleId, {
           opened: false,
@@ -94,6 +107,7 @@ export default function OpCoordinationModal({
           openedAt: null
         });
       } else if (action === 'undo_close') {
+        if (!targetCycleId) return;
         if (!confirm('¿Seguro que quieres anular el cierre?')) { setLoading(false); return; }
         await updateDailyCallCycle(targetCycleId, {
           closed: false,
@@ -116,7 +130,7 @@ export default function OpCoordinationModal({
     try {
       await updateDailyCallStatus(status.id, { notes });
       onUpdated();
-      if (!cycleId) onClose(); // Only close if we are in the general modal
+      onClose();
     } catch (error) {
       console.error(error);
       alert('Error al guardar las notas.');
@@ -126,7 +140,8 @@ export default function OpCoordinationModal({
   };
 
   const handleDeleteCycle = async () => {
-    if (!cycleId) return;
+    const cycleToDeleteId = existingCycle ? existingCycle.id : cycleId;
+    if (!cycleToDeleteId) return;
     
     if (!confirm('¿Seguro que quieres eliminar este ciclo?')) return;
 
@@ -141,7 +156,7 @@ export default function OpCoordinationModal({
       if (deleteFuture) {
         await deleteFutureDailyCallCycles(status.callTargetId, status.date);
       } else {
-        await deleteDailyCallCycle(cycleId);
+        await deleteDailyCallCycle(cycleToDeleteId);
       }
       onUpdated();
       onClose();
@@ -150,9 +165,7 @@ export default function OpCoordinationModal({
       alert('Error al eliminar el ciclo.');
       setLoading(false);
     }
-  }
-
-  const isCreatingNew = !cycleId;
+  };
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -275,25 +288,23 @@ export default function OpCoordinationModal({
           )}
 
           {/* NOTES FORM (Always available) */}
-          {isCreatingNew && (
-            <div className={styles.actionForm} style={{ marginTop: '1.5rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-              <label>Nota del día general para {status.callTarget?.name} (opcional):</label>
-              <textarea 
-                placeholder="Ej: Nos indican que hoy el aeródromo cierra antes..."
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', minHeight: '60px', marginTop: '0.5rem' }}
-              />
-              <button 
-                className="btn" 
-                style={{ marginTop: '0.5rem', backgroundColor: '#e2e8f0', color: '#1e293b' }} 
-                onClick={handleSaveNotes}
-                disabled={loading || notes === (status.notes || '')}
-              >
-                Guardar Nota
-              </button>
-            </div>
-          )}
+          <div className={styles.actionForm} style={{ marginTop: '1.5rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+            <label>Nota del día general para {status.callTarget?.name} (opcional):</label>
+            <textarea 
+              placeholder="Ej: Nos indican que hoy el aeródromo cierra antes..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', minHeight: '60px', marginTop: '0.5rem' }}
+            />
+            <button 
+              className="btn" 
+              style={{ marginTop: '0.5rem', backgroundColor: '#e2e8f0', color: '#1e293b' }} 
+              onClick={handleSaveNotes}
+              disabled={loading || notes === (status.notes || '')}
+            >
+              Guardar Nota
+            </button>
+          </div>
 
         </div>
       </div>

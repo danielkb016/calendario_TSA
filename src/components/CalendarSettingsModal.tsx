@@ -653,7 +653,6 @@ export default function CalendarSettingsModal({
                                           <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '0.5rem' }}>(aviso {coord.warningDays} días)</span>
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                          <button onClick={() => handleCopyCoordination(coord)} className={styles.iconBtn} title="Copiar datos para nueva coordinación">📋</button>
                                           <button onClick={() => handleDeleteCoordination(coord.id)} className={styles.iconBtn} title="Eliminar coordinación">🗑️</button>
                                         </div>
                                       </div>

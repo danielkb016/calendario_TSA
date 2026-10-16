@@ -99,9 +99,12 @@ export default function FlightModal({
         });
       }
       onClose(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Error guardando la coordinación');
+      const msg = error.message || String(error);
+      alert('Error guardando la coordinación: ' + msg);
+      // also set it to state so we can see it on screen without alert
+      setSituation('ERROR AL GUARDAR: ' + msg);
       setLoading(false);
     }
   };

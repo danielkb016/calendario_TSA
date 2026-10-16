@@ -404,9 +404,11 @@ export default function GlobalTodayBanner({
                       <div className={styles.sectionLabel}>PERMISOS DIARIOS</div>
                       
                       {coord.statuses.map(status => {
-                        const cycles = status.cycles || [];
+                        const cycles = status.cycles ? [...status.cycles].sort((a, b) => a.id - b.id) : [];
+                        const activeOpenCycle = cycles.find(c => c.opened && !c.closed);
                         const latestCycle = cycles.length > 0 ? cycles[cycles.length - 1] : null;
-                        const isCurrentlyOpen = latestCycle && latestCycle.opened && !latestCycle.closed;
+                        const isCurrentlyOpen = !!activeOpenCycle || !!(latestCycle && latestCycle.opened && !latestCycle.closed);
+                        const currentCycleToTarget = activeOpenCycle || latestCycle;
 
                         return (
                         <div key={status.id} className={styles.innerItem} style={{ borderColor: isCurrentlyOpen ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)' }}>
@@ -418,8 +420,8 @@ export default function GlobalTodayBanner({
                               className={`${styles.statusPill} ${isCurrentlyOpen ? styles.abierta : styles.cerrada}`}
                               onClick={(e) => { 
                                 e.stopPropagation(); 
-                                if (isCurrentlyOpen) {
-                                   setQuickActionStatus({ status, cycleId: latestCycle.id });
+                                if (isCurrentlyOpen && currentCycleToTarget) {
+                                   setQuickActionStatus({ status, cycleId: currentCycleToTarget.id });
                                 } else {
                                    setQuickActionStatus({ status });
                                 }
@@ -440,7 +442,10 @@ export default function GlobalTodayBanner({
                               </button>
                             )}
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setQuickActionStatus({ status }); }}
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setQuickActionStatus({ status, cycleId: currentCycleToTarget?.id }); 
+                              }}
                               className={styles.actionBtn}
                             >
                               📝 Nota
@@ -453,9 +458,9 @@ export default function GlobalTodayBanner({
                             </div>
                           )}
 
-                          {status.cycles && status.cycles.length > 0 && (
+                          {cycles.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
-                              {status.cycles.map((cycle) => (
+                              {cycles.map((cycle) => (
                                 <div key={cycle.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: '0.3rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', color: '#94a3b8' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
                                     {cycle.opened ? (
