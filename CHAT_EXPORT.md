@@ -105,3 +105,70 @@ En la captura de pantalla adjunta se observaba:
    - `RUN apk add --no-cache tzdata` para sincronización horaria con Madrid en Alpine Linux.
 5. `src/components/ChangelogViewer.tsx`, `src/app/page.tsx`, `package.json`:
    - Incremento de versión a `0.0.7` y registro público en el visor de versiones.
+
+---
+
+# Sesión 2: Funcionalidad de Importación Inteligente de Exclusiones (IA)
+
+**Fecha de la sesión**: 16 de Octubre de 2026  
+**Rama de trabajo**: `developer`  
+**Objetivo**: Automatizar la extracción de fechas y restricciones horarias desde textos oficiales (resoluciones/oficios militares y civiles) hacia las coordinaciones de vuelo mediante IA.
+
+---
+
+## 1. Requerimiento y Análisis
+El usuario solicitó la posibilidad de pegar textos de resoluciones oficiales directamente en la aplicación (por ejemplo:
+*"SE AUTORIZAN dichos vuelos durante el periodo del 24 de septiembre al 08 de octubre de 2026... no podrán realizarse los días: 25/09, 28/09, 29/09 autorizado a partir de 18:00h, 30/09 autorizado a partir de 15:00h, 01/10, 06/10, 07/10"*).
+
+El sistema debía:
+1. Extraer el periodo de coordinación (fechas de inicio y fin).
+2. Identificar cada exclusión con su tipo de regla (`DENY_ALL`, `ALLOW_WINDOWS`, `DENY_WINDOWS`), sus franjas horarias y su código de expediente/motivo (ej. `MILNOF-1793`).
+3. Agrupar días consecutivos que compartan condiciones idénticas (ej. `Del 06/10/2026 al 07/10/2026`).
+4. Ofrecer una previsualización interactiva con casillas para que el operador verifique antes de guardar.
+5. Aprovechar el Hub de IA multi-modelo existente en n8n.
+
+---
+
+## 2. Desarrollo e Integración n8n
+
+1. **Diseño del Flujo en n8n**:
+   - `Webhook Entrada` (POST `/webhook/parse-exclusiones`).
+   - `Preparar Prompt`: Formatea el rol del sistema (`system_message`), el prompt detallado con las reglas de extracción, el texto oficial y el parámetro `modelo` (`"pro"` para Groq o `"flash"` para Gemini).
+   - `Llamar a mi Sub-Workflow IA`: Conexión directa con el Hub multi-modelo existente del usuario.
+   - `Limpiar y Validar JSON`: Parser defensivo capaz de extraer el objeto JSON puro incluso si el modelo lo encapsula en markdown o en campos como `respuesta` u `output`.
+   - `Responder a Webhook`: Devolución inmediata del JSON a la aplicación web.
+
+2. **Resolución de Red Docker en Producción**:
+   - Para permitir que el contenedor `calendario-app` se comunique con n8n alojado en la misma máquina o en la red Tailscale, se incorporó `extra_hosts: ["host.docker.internal:host-gateway"]` en `docker-compose.yml`.
+   - La Server Action `parseExclusionsWithAI` se diseñó con redundancia automática, probando de forma secuencial `host.docker.internal:5678`, `100.112.13.34:5678` y `localhost:5678`.
+   - Se reemplazó el lanzamiento de excepciones no controladas por respuestas estructuradas `{ error: string }`, evitando que Next.js en producción oculte el error con el mensaje genérico *"An error occurred in the Server Components render..."*.
+
+---
+
+## 3. Implementación en la Aplicación Web
+
+1. **Backend (`src/app/actions.ts`)**:
+   - `addMultiplePermitExclusions`: Inserción atómica mediante `prisma.$transaction` de todas las exclusiones seleccionadas.
+   - `parseExclusionsWithAI`: Invocación del webhook con control de timeout y deserialización robusta.
+2. **Interfaz (`src/components/CalendarSettingsModal.tsx`)**:
+   - Nuevo botón **`✨ Importar (Beta)`** integrado en el listado de coordinaciones.
+   - Modal secundario con diseño accesible:
+     - Selector de motivo por defecto (`MILNOF-1793`).
+     - Casilla para activar/desactivar la agrupación de días consecutivos.
+     - Área de texto para pegar el oficio.
+     - Indicador visual del periodo general detectado.
+     - Tabla de previsualización con badges cromáticos (🔴 Prohibido todo el día, 🟢 Horario permitido, 🟠 Horario prohibido).
+     - Casillas de verificación para incluir o descartar fechas individualmente antes de la persistencia.
+3. **Estilos (`src/components/CalendarSettingsModal.module.css`)**:
+   - Clases dedicadas: `.aiSparkleBtn`, `.aiSubModalOverlay`, `.aiSubModal`, `.aiTextarea`, `.aiPreviewContainer`, `.badgeDeny`, `.badgeAllow`.
+
+---
+
+## 4. Archivos Modificados en el Repositorio
+
+- `src/app/actions.ts`: Métodos de parseo con IA y creación por lotes.
+- `src/components/CalendarSettingsModal.tsx`: Botón `✨ Importar (Beta)`, modal y previsualización.
+- `src/components/CalendarSettingsModal.module.css`: Estilos visuales del importador.
+- `docker-compose.yml`: Variable `N8N_EXCLUSIONS_WEBHOOK_URL` y mapeo `extra_hosts`.
+- `.env`: Configuración del endpoint de n8n.
+- `CHAT_EXPORT.md`: Documentación exhaustiva del proceso y decisiones técnicas.
