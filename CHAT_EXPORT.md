@@ -242,6 +242,13 @@ El sistema debía:
    - Se documentó la versión `0.0.8` (Importación con IA) y la versión `0.0.9` (Identificadores de 2º nivel, aviso inteligente, aislamiento y fechas `DD/MM/AAAA`) en `src/components/ChangelogViewer.tsx`.
    - Versión incrementada a `0.0.9` en `package.json` y `src/app/page.tsx`.
 
+7. **Estabilidad de Compilación (Docker) y Acciones sobre Coordinaciones**:
+   - Se corrigió el bloque condicional en `GlobalTodayBanner.tsx` incorporando la cláusula `} else {` para asegurar que `activeCoord` esté debidamente acotado por TypeScript en tiempo de compilación (`npm run build` en Docker).
+   - Documentación y diferenciación funcional de los controles de cada tarjeta:
+     - ✏️ **Editar (Inline)**: Modifica nombre/ID, fechas y aviso de la coordinación actual conservando intactas todas sus exclusiones.
+     - 📋 **Copiar al formulario**: Vuelca los datos de la tarjeta en el formulario inferior para facilitar la creación de prórrogas o renovaciones periódicas sin reescribir la configuración.
+     - 🗑️ **Eliminar**: Retira el periodo y sus restricciones asociadas.
+
 ---
 
 ## 3. Archivos Modificados
