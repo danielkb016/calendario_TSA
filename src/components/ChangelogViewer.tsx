@@ -12,6 +12,30 @@ type ChangelogEntry = {
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.0.9',
+    date: '19/10/2026',
+    summary: 'Identificadores de 2º nivel, aviso inteligente de renovación, aislamiento de exclusiones y formato de fecha uniforme (DD/MM/AAAA)',
+    details: [
+      'Formato uniforme de fecha (DD/MM/AAAA): corrección estricta de formato en toda la plataforma (panel de permisos globales, avisos y modales), garantizando visualización consistente independientemente de la configuración regional o SSR.',
+      'Identificador de 2º nivel: posibilidad de asignar un identificador o nombre a cada unidad de coordinación (ej. "NOTAM D5418/26"), visible de un vistazo en una insignia destacada.',
+      'Edición directa de coordinaciones: botón de edición rápida (✏️) en cada tarjeta para modificar el identificador, fechas y días de aviso sin eliminar las exclusiones registradas.',
+      'Aislamiento de formularios de exclusión: cada tarjeta de coordinación gestiona su propio formulario y estado local de forma aislada, solucionando la duplicación simultánea de texto en "Motivo (opcional)..." o fechas.',
+      'Cálculo inteligente del aviso de renovación (amarillo): el aviso de renovación próxima se evalúa respecto a la última coordinación registrada en el horizonte del permiso, evitando falsas alarmas amarillas en periodos intermedios con prórrogas tramitadas.',
+      'Integración global: el identificador de la coordinación activa se visualiza automáticamente en el panel diario de Permisos Globales y en las advertencias del Gantt.'
+    ]
+  },
+  {
+    version: '0.0.8',
+    date: '16/10/2026',
+    summary: 'Importación Inteligente de Exclusiones y Coordinaciones con IA (Beta)',
+    details: [
+      'Extracción automática con IA: nuevo botón "✨ Importar (Beta)" en la gestión de coordinaciones para pegar textos u oficios oficiales y procesar exclusiones automáticamente mediante webhook/LLM (n8n).',
+      'Detección de periodos y franjas horarias: extracción estructurada del rango de fechas de la coordinación, exclusiones completas (DENY_ALL) y restricciones horarias específicas (ALLOW_WINDOWS / DENY_WINDOWS).',
+      'Modal de previsualización interactivo: interfaz para revisar, seleccionar/deseleccionar las exclusiones detectadas y fusionar días consecutivos antes de guardarlas.',
+      'Inserción atómica por lotes: guardado en bloque mediante transacciones Prisma asegurando consistencia y alta velocidad.'
+    ]
+  },
+  {
     version: '0.0.7',
     date: '13/10/2026',
     summary: 'Consistencia en permisos diarios y gestión atómica de firmas operativas',

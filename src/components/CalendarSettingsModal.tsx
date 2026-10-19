@@ -10,6 +10,7 @@ import {
   addPermitExclusion, removePermitExclusion,
   addMultiplePermitExclusions, parseExclusionsWithAI 
 } from '@/app/actions';
+import { formatDateDMY } from '@/lib/dateUtils';
 import styles from './CalendarSettingsModal.module.css';
 
 type PermitExclusion = {
@@ -23,6 +24,7 @@ type PermitExclusion = {
 
 type PermitCoordination = {
   id: number;
+  name?: string | null;
   startDate: Date | string | null;
   expirationDate: Date | string;
   warningDays: number;
@@ -61,6 +63,315 @@ type Calendar = {
 
 type TabType = 'general' | 'zones' | 'permits' | 'calls';
 
+function toInputDate(val: Date | string | null | undefined): string {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    if (val.length === 10 && val.includes('-')) return val;
+    return val.split('T')[0];
+  }
+  const y = val.getFullYear();
+  const m = String(val.getMonth() + 1).padStart(2, '0');
+  const d = String(val.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function PermitCoordinationCard({
+  coord,
+  loading,
+  onDeleteCoordination,
+  onUpdateCoordination,
+  onCopyCoordination,
+  onDeleteExclusion,
+  onAddExclusion,
+  onOpenAiModal
+}: {
+  coord: PermitCoordination;
+  loading: boolean;
+  onDeleteCoordination: (id: number) => Promise<void>;
+  onUpdateCoordination: (id: number, startDate: Date | null, expirationDate: Date, warningDays: number, name?: string | null) => Promise<void>;
+  onCopyCoordination: (coord: PermitCoordination) => void;
+  onDeleteExclusion: (id: number) => Promise<void>;
+  onAddExclusion: (coordId: number, startDateStr: string, endDateStr: string | null, ruleType: string, timeWindows: {start: string, end: string}[], reasonStr: string) => Promise<void>;
+  onOpenAiModal: (coordId: number) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(coord.name || '');
+  const [editStartDate, setEditStartDate] = useState(toInputDate(coord.startDate));
+  const [editExpirationDate, setEditExpirationDate] = useState(toInputDate(coord.expirationDate));
+  const [editWarningDays, setEditWarningDays] = useState(coord.warningDays ?? 30);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Form state for adding an exclusion to THIS coordination
+  const [newExclusionIsRange, setNewExclusionIsRange] = useState(false);
+  const [newExclusionStartDate, setNewExclusionStartDate] = useState('');
+  const [newExclusionEndDate, setNewExclusionEndDate] = useState('');
+  const [newExclusionRuleType, setNewExclusionRuleType] = useState('DENY_ALL');
+  const [newExclusionTimeWindows, setNewExclusionTimeWindows] = useState<{start: string, end: string}[]>([{start: '', end: ''}]);
+  const [newExclusionReason, setNewExclusionReason] = useState('');
+  const [addingExclusion, setAddingExclusion] = useState(false);
+
+  React.useEffect(() => {
+    setEditName(coord.name || '');
+    setEditStartDate(toInputDate(coord.startDate));
+    setEditExpirationDate(toInputDate(coord.expirationDate));
+    setEditWarningDays(coord.warningDays ?? 30);
+  }, [coord]);
+
+  const handleSaveEdit = async () => {
+    if (!editExpirationDate) return;
+    setSavingEdit(true);
+    try {
+      const sDate = editStartDate ? new Date(editStartDate) : null;
+      await onUpdateCoordination(coord.id, sDate, new Date(editExpirationDate), editWarningDays, editName.trim() || null);
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar cambios de la coordinación');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleAddExclusionClick = async () => {
+    if (!newExclusionStartDate) return;
+    setAddingExclusion(true);
+    try {
+      await onAddExclusion(
+        coord.id,
+        newExclusionStartDate,
+        newExclusionIsRange && newExclusionEndDate ? newExclusionEndDate : null,
+        newExclusionRuleType,
+        newExclusionTimeWindows,
+        newExclusionReason
+      );
+      setNewExclusionStartDate('');
+      setNewExclusionEndDate('');
+      setNewExclusionIsRange(false);
+      setNewExclusionRuleType('DENY_ALL');
+      setNewExclusionTimeWindows([{start: '', end: ''}]);
+      setNewExclusionReason('');
+    } finally {
+      setAddingExclusion(false);
+    }
+  };
+
+  return (
+    <div style={{ backgroundColor: 'rgba(0,0,0,0.03)', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+      {isEditing ? (
+        <div className={styles.coordEditContainer}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
+            ✏️ Editando Coordinación (2º Nivel)
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: '160px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Nombre / ID (2º nivel):</label>
+              <input 
+                type="text" 
+                value={editName} 
+                onChange={e => setEditName(e.target.value)} 
+                placeholder="Ej: NOTAM D5418/26" 
+                className={styles.input} 
+                style={{ margin: 0, padding: '0.25rem 0.4rem', fontSize: '0.8rem' }} 
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Inicia (opcional):</label>
+              <input 
+                type="date" 
+                value={editStartDate} 
+                onChange={e => setEditStartDate(e.target.value)} 
+                className={styles.input} 
+                style={{ margin: 0, padding: '0.25rem 0.4rem', fontSize: '0.8rem' }} 
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Caduca el:</label>
+              <input 
+                type="date" 
+                value={editExpirationDate} 
+                onChange={e => setEditExpirationDate(e.target.value)} 
+                className={styles.input} 
+                style={{ margin: 0, padding: '0.25rem 0.4rem', fontSize: '0.8rem' }} 
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Aviso (días):</label>
+              <input 
+                type="number" 
+                value={editWarningDays} 
+                onChange={e => setEditWarningDays(Number(e.target.value))} 
+                className={styles.input} 
+                style={{ margin: 0, width: '60px', padding: '0.25rem 0.4rem', fontSize: '0.8rem' }} 
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+            <button 
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setEditName(coord.name || '');
+                setEditStartDate(toInputDate(coord.startDate));
+                setEditExpirationDate(toInputDate(coord.expirationDate));
+                setEditWarningDays(coord.warningDays ?? 30);
+              }} 
+              disabled={savingEdit}
+              className={styles.cancelBtn} 
+              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="button"
+              onClick={handleSaveEdit} 
+              disabled={savingEdit || !editExpirationDate} 
+              className={styles.primaryBtn} 
+              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+            >
+              Guardar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            {coord.name ? (
+              <span className={styles.coordBadge} title="Identificador de la coordinación (2º nivel)">
+                🏷️ {coord.name}
+              </span>
+            ) : (
+              <span className={styles.coordBadgeEmpty} title="Sin identificador específico">
+                Sin ID
+              </span>
+            )}
+            <span style={{ fontWeight: 600, color: '#1e293b' }}>
+              {coord.startDate ? `Del ${formatDateDMY(coord.startDate)} al ` : `Hasta el `}
+              {formatDateDMY(coord.expirationDate)}
+            </span>
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>(aviso {coord.warningDays} días)</span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
+            <button type="button" onClick={() => setIsEditing(true)} disabled={loading} className={styles.iconBtn} title="Editar nombre / identificador y fechas">✏️</button>
+            <button type="button" onClick={() => onCopyCoordination(coord)} disabled={loading} className={styles.iconBtn} title="Copiar datos de esta coordinación al formulario">📋</button>
+            <button type="button" onClick={() => onDeleteCoordination(coord.id)} disabled={loading} className={styles.iconBtn} title="Eliminar coordinación">🗑️</button>
+          </div>
+        </div>
+      )}
+
+      {/* Exclusions Sub-list */}
+      <div style={{ marginTop: '0.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b91c1c' }}>Fechas Excluidas (No se permite volar):</div>
+          <button 
+            type="button"
+            onClick={() => onOpenAiModal(coord.id)} 
+            className={styles.aiSparkleBtn}
+            title="Pegar oficio oficial y extraer exclusiones automáticamente con IA"
+          >
+            ✨ Importar (Beta)
+          </button>
+        </div>
+        {coord.exclusions && coord.exclusions.length > 0 ? (
+          <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>
+            {coord.exclusions.map(ex => {
+              const startStr = formatDateDMY(ex.startDate);
+              const endStr = ex.endDate ? formatDateDMY(ex.endDate) : null;
+              const dateText = endStr ? `Del ${startStr} al ${endStr}` : startStr;
+              let ruleText = '';
+              if (ex.ruleType === 'DENY_ALL') ruleText = ' (Todo el día)';
+              else {
+                const tw = ex.timeWindowsJson ? JSON.parse(ex.timeWindowsJson) : [];
+                const twStr = tw.map((w:any) => `${w.start}-${w.end}`).join(', ');
+                if (ex.ruleType === 'ALLOW_WINDOWS') ruleText = ` (Solo permitido: ${twStr})`;
+                if (ex.ruleType === 'DENY_WINDOWS') ruleText = ` (Solo prohibido: ${twStr})`;
+              }
+              return (
+                <li key={ex.id} style={{ marginBottom: '0.2rem' }}>
+                  {dateText}{ruleText} - {ex.reason || 'Sin motivo'}
+                  <button type="button" onClick={() => onDeleteExclusion(ex.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', marginLeft: '0.5rem' }}>✖</button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Ninguna fecha excluida en esta coordinación.</div>
+        )}
+        
+        {/* Add Exclusion Form (local to this card) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', borderTop: '1px dotted #cbd5e1', paddingTop: '0.75rem' }}>
+          <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
+            <input type="checkbox" checked={newExclusionIsRange} onChange={e => setNewExclusionIsRange(e.target.checked)} /> Rango de días
+          </label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input type="date" value={newExclusionStartDate} onChange={e => setNewExclusionStartDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+            {newExclusionIsRange && (
+              <>
+                <span style={{ fontSize: '0.8rem' }}>al</span>
+                <input type="date" value={newExclusionEndDate} onChange={e => setNewExclusionEndDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+              </>
+            )}
+            <select value={newExclusionRuleType} onChange={e => setNewExclusionRuleType(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }}>
+              <option value="DENY_ALL">Prohibir todo el día</option>
+              <option value="ALLOW_WINDOWS">SÍ se puede volar en horas...</option>
+              <option value="DENY_WINDOWS">NO se puede volar en horas...</option>
+            </select>
+          </div>
+          
+          {newExclusionRuleType !== 'DENY_ALL' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cbd5e1' }}>
+              {newExclusionTimeWindows.map((tw, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input type="time" value={tw.start} onChange={e => {
+                    const newW = [...newExclusionTimeWindows];
+                    newW[idx].start = e.target.value;
+                    setNewExclusionTimeWindows(newW);
+                  }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                  <span style={{ fontSize: '0.8rem' }}>a</span>
+                  <input type="time" value={tw.end} onChange={e => {
+                    const newW = [...newExclusionTimeWindows];
+                    newW[idx].end = e.target.value;
+                    setNewExclusionTimeWindows(newW);
+                  }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
+                  {idx === newExclusionTimeWindows.length - 1 && (
+                    <button type="button" onClick={() => setNewExclusionTimeWindows([...newExclusionTimeWindows, {start: '', end: ''}])} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>+</button>
+                  )}
+                  {newExclusionTimeWindows.length > 1 && (
+                    <button type="button" onClick={() => {
+                      const newW = [...newExclusionTimeWindows];
+                      newW.splice(idx, 1);
+                      setNewExclusionTimeWindows(newW);
+                    }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>×</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input 
+              type="text" 
+              placeholder="Motivo (opcional)..." 
+              value={newExclusionReason} 
+              onChange={e => setNewExclusionReason(e.target.value)} 
+              className={styles.input} 
+              style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem', flex: 1 }} 
+            />
+            <button 
+              type="button"
+              onClick={handleAddExclusionClick} 
+              disabled={!newExclusionStartDate || addingExclusion || (newExclusionIsRange && !newExclusionEndDate)} 
+              className={styles.primaryBtn} 
+              style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+            >
+              + Exclusión
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 export default function CalendarSettingsModal({
   calendar,
   onClose,
@@ -86,6 +397,7 @@ export default function CalendarSettingsModal({
   // -- Permits Tab State --
   const [showPermitsInfo, setShowPermitsInfo] = useState(false);
   const [newPermitName, setNewPermitName] = useState('');
+  const [newPermitCoordName, setNewPermitCoordName] = useState('');
   const [newPermitStartDate, setNewPermitStartDate] = useState('');
   const [newPermitDate, setNewPermitDate] = useState('');
   const [newPermitWarningDays, setNewPermitWarningDays] = useState(30);
@@ -94,13 +406,6 @@ export default function CalendarSettingsModal({
   const [editingPermitName, setEditingPermitName] = useState('');
   const [editingPermitDate, setEditingPermitDate] = useState('');
   const [editingPermitWarningDays, setEditingPermitWarningDays] = useState(30);
-
-  const [newExclusionIsRange, setNewExclusionIsRange] = useState(false);
-  const [newExclusionStartDate, setNewExclusionStartDate] = useState('');
-  const [newExclusionEndDate, setNewExclusionEndDate] = useState('');
-  const [newExclusionRuleType, setNewExclusionRuleType] = useState('DENY_ALL'); // DENY_ALL, ALLOW_WINDOWS, DENY_WINDOWS
-  const [newExclusionTimeWindows, setNewExclusionTimeWindows] = useState<{start: string, end: string}[]>([{start: '', end: ''}]);
-  const [newExclusionReason, setNewExclusionReason] = useState('');
 
   // -- AI Exclusions Import State --
   const [aiModalCoordId, setAiModalCoordId] = useState<number | null>(null);
@@ -282,7 +587,8 @@ export default function CalendarSettingsModal({
     setLoading(true);
     try {
       const startD = newPermitStartDate ? new Date(newPermitStartDate) : null;
-      await addPermitCoordination(permitId, startD, new Date(newPermitDate), newPermitWarningDays);
+      await addPermitCoordination(permitId, startD, new Date(newPermitDate), newPermitWarningDays, newPermitCoordName.trim() || null);
+      setNewPermitCoordName('');
       setNewPermitStartDate('');
       setNewPermitDate('');
       setNewPermitWarningDays(30);
@@ -290,6 +596,25 @@ export default function CalendarSettingsModal({
     } catch (error) {
       console.error(error);
       alert('Error al añadir la coordinación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCoordination = async (
+    id: number,
+    startDate: Date | null,
+    expirationDate: Date,
+    warningDays: number = 30,
+    name?: string | null
+  ) => {
+    setLoading(true);
+    try {
+      await updatePermitCoordination(id, startDate, expirationDate, warningDays, name);
+      onUpdated();
+    } catch (error) {
+      console.error(error);
+      alert('Error al actualizar la coordinación');
     } finally {
       setLoading(false);
     }
@@ -309,32 +634,33 @@ export default function CalendarSettingsModal({
     }
   };
 
-  const handleCopyCoordination = (coord: any) => {
+  const handleCopyCoordination = (coord: PermitCoordination) => {
+    setNewPermitCoordName(coord.name || '');
     if (coord.startDate) {
-      setNewPermitStartDate(new Date(coord.startDate).toISOString().substring(0, 10));
+      setNewPermitStartDate(toInputDate(coord.startDate));
     } else {
       setNewPermitStartDate('');
     }
-    setNewPermitDate(new Date(coord.expirationDate).toISOString().substring(0, 10));
-    setNewPermitWarningDays(coord.warningDays);
+    setNewPermitDate(toInputDate(coord.expirationDate));
+    setNewPermitWarningDays(coord.warningDays ?? 30);
   };
 
-  const handleAddExclusion = async (permitId: number) => {
-    if (!newExclusionStartDate) return;
+  const handleAddExclusion = async (
+    coordId: number,
+    startDateStr: string,
+    endDateStr: string | null,
+    ruleType: string,
+    timeWindows: {start: string, end: string}[],
+    reasonStr: string
+  ) => {
+    if (!startDateStr) return;
     setLoading(true);
     try {
-      const endD = newExclusionIsRange && newExclusionEndDate ? new Date(newExclusionEndDate) : null;
-      const validWindows = newExclusionTimeWindows.filter(w => w.start && w.end);
-      const twJson = newExclusionRuleType !== 'DENY_ALL' && validWindows.length > 0 ? JSON.stringify(validWindows) : null;
+      const endD = endDateStr ? new Date(endDateStr) : null;
+      const validWindows = timeWindows.filter(w => w.start && w.end);
+      const twJson = ruleType !== 'DENY_ALL' && validWindows.length > 0 ? JSON.stringify(validWindows) : null;
       
-      await addPermitExclusion(permitId, new Date(newExclusionStartDate), endD, newExclusionRuleType, twJson, newExclusionReason.trim() || null);
-      
-      setNewExclusionStartDate('');
-      setNewExclusionEndDate('');
-      setNewExclusionRuleType('DENY_ALL');
-      setNewExclusionTimeWindows([{start: '', end: ''}]);
-      setNewExclusionReason('');
-      setNewExclusionIsRange(false);
+      await addPermitExclusion(coordId, new Date(startDateStr), endD, ruleType, twJson, reasonStr.trim() || null);
       onUpdated();
     } catch (error) {
       console.error(error);
@@ -765,7 +1091,7 @@ export default function CalendarSettingsModal({
                     <p style={{ margin: '0 0 0.5rem 0' }}>El sistema funciona en <strong>dos niveles</strong> jerárquicos:</p>
                     <ol style={{ margin: '0 0 0.75rem 1.5rem', padding: 0 }}>
                       <li style={{ marginBottom: '0.3rem' }}><strong>Nivel 1 (Restricción):</strong> Define la norma o zona afectada (ej. "ZGUAS LECU" o "LEP118"). Actúa como el contenedor general permanente.</li>
-                      <li style={{ marginBottom: '0.3rem' }}><strong>Nivel 2 (Coordinaciones):</strong> Dentro de una restricción, añades los <em>periodos temporales</em> (intervalos) en los que tienes permiso efectivo para volar.</li>
+                      <li style={{ marginBottom: '0.3rem' }}><strong>Nivel 2 (Coordinaciones):</strong> Dentro de una restricción, añades los <em>periodos temporales</em> (intervalos) en los que tienes permiso efectivo para volar, asignándoles opcionalmente su propio identificador o nombre (ej. "NOTAM D5418/26" o "MILNOF-1793").</li>
                     </ol>
                     <p style={{ margin: '0 0 0.5rem 0' }}><strong>¿Qué pasa si caduca una coordinación?</strong><br />Cuando caduca una coordinación (o si defines una nueva que empieza más adelante, dejando un hueco), el sistema detectará automáticamente esos días "vacíos" sin cobertura y te avisará en rojo (❌ <em>Sin coordinación en fecha...</em>).</p>
                     <p style={{ margin: 0 }}><strong>Exclusiones (Intermitencias):</strong><br />A veces tienes una coordinación general aprobada para un mes, pero te deniegan el vuelo en días específicos dentro de ese mismo mes (ej. prohibido el día 15). Puedes añadir esas exclusiones (los "agujeros") dentro de tu coordinación activa para que el calendario pinte esos días sueltos en rojo.</p>
@@ -806,116 +1132,17 @@ export default function CalendarSettingsModal({
                               {permit.coordinations && permit.coordinations.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                   {permit.coordinations.map(coord => (
-                                    <div key={coord.id} style={{ backgroundColor: 'rgba(0,0,0,0.03)', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                          <span style={{ fontWeight: 600 }}>
-                                            {coord.startDate ? `Del ${new Date(coord.startDate).toLocaleDateString()} al ` : `Hasta el `}
-                                            {new Date(coord.expirationDate).toLocaleDateString()}
-                                          </span>
-                                          <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '0.5rem' }}>(aviso {coord.warningDays} días)</span>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                          <button onClick={() => handleDeleteCoordination(coord.id)} className={styles.iconBtn} title="Eliminar coordinación">🗑️</button>
-                                        </div>
-                                      </div>
-
-                                      {/* Exclusions Sub-list */}
-                                      <div style={{ marginTop: '0.75rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b91c1c' }}>Fechas Excluidas (No se permite volar):</div>
-                                          <button 
-                                            type="button"
-                                            onClick={() => handleOpenAiModal(coord.id)} 
-                                            className={styles.aiSparkleBtn}
-                                            title="Pegar oficio oficial y extraer exclusiones automáticamente con IA"
-                                          >
-                                            ✨ Importar (Beta)
-                                          </button>
-                                        </div>
-                                        {coord.exclusions && coord.exclusions.length > 0 ? (
-                                          <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>
-                                            {coord.exclusions.map(ex => {
-                                              const startStr = new Date(ex.startDate).toLocaleDateString();
-                                              const endStr = ex.endDate ? new Date(ex.endDate).toLocaleDateString() : null;
-                                              const dateText = endStr ? `Del ${startStr} al ${endStr}` : startStr;
-                                              let ruleText = '';
-                                              if (ex.ruleType === 'DENY_ALL') ruleText = ' (Todo el día)';
-                                              else {
-                                                const tw = ex.timeWindowsJson ? JSON.parse(ex.timeWindowsJson) : [];
-                                                const twStr = tw.map((w:any) => `${w.start}-${w.end}`).join(', ');
-                                                if (ex.ruleType === 'ALLOW_WINDOWS') ruleText = ` (Solo permitido: ${twStr})`;
-                                                if (ex.ruleType === 'DENY_WINDOWS') ruleText = ` (Solo prohibido: ${twStr})`;
-                                              }
-                                              return (
-                                                <li key={ex.id} style={{ marginBottom: '0.2rem' }}>
-                                                  {dateText}{ruleText} - {ex.reason || 'Sin motivo'}
-                                                  <button onClick={() => handleDeleteExclusion(ex.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', marginLeft: '0.5rem' }}>✖</button>
-                                                </li>
-                                              );
-                                            })}
-                                          </ul>
-                                        ) : (
-                                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Ninguna fecha excluida en esta coordinación.</div>
-                                        )}
-                                        
-                                        {/* Add Exclusion Form */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', borderTop: '1px dotted #cbd5e1', paddingTop: '0.75rem' }}>
-                                          <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
-                                            <input type="checkbox" checked={newExclusionIsRange} onChange={e => setNewExclusionIsRange(e.target.checked)} /> Rango de días
-                                          </label>
-                                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                            <input type="date" value={newExclusionStartDate} onChange={e => setNewExclusionStartDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                            {newExclusionIsRange && (
-                                              <>
-                                                <span style={{ fontSize: '0.8rem' }}>al</span>
-                                                <input type="date" value={newExclusionEndDate} onChange={e => setNewExclusionEndDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                              </>
-                                            )}
-                                            <select value={newExclusionRuleType} onChange={e => setNewExclusionRuleType(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }}>
-                                              <option value="DENY_ALL">Prohibir todo el día</option>
-                                              <option value="ALLOW_WINDOWS">SÍ se puede volar en horas...</option>
-                                              <option value="DENY_WINDOWS">NO se puede volar en horas...</option>
-                                            </select>
-                                          </div>
-                                          
-                                          {newExclusionRuleType !== 'DENY_ALL' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '1rem', paddingLeft: '0.5rem', borderLeft: '2px solid #cbd5e1' }}>
-                                              {newExclusionTimeWindows.map((tw, idx) => (
-                                                <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                  <input type="time" value={tw.start} onChange={e => {
-                                                    const newW = [...newExclusionTimeWindows];
-                                                    newW[idx].start = e.target.value;
-                                                    setNewExclusionTimeWindows(newW);
-                                                  }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                                  <span style={{ fontSize: '0.8rem' }}>a</span>
-                                                  <input type="time" value={tw.end} onChange={e => {
-                                                    const newW = [...newExclusionTimeWindows];
-                                                    newW[idx].end = e.target.value;
-                                                    setNewExclusionTimeWindows(newW);
-                                                  }} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem' }} />
-                                                  {idx === newExclusionTimeWindows.length - 1 && (
-                                                    <button onClick={() => setNewExclusionTimeWindows([...newExclusionTimeWindows, {start: '', end: ''}])} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>+</button>
-                                                  )}
-                                                  {newExclusionTimeWindows.length > 1 && (
-                                                    <button onClick={() => {
-                                                      const newW = [...newExclusionTimeWindows];
-                                                      newW.splice(idx, 1);
-                                                      setNewExclusionTimeWindows(newW);
-                                                    }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.25rem' }}>×</button>
-                                                  )}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                            <input type="text" placeholder="Motivo (opcional)..." value={newExclusionReason} onChange={e => setNewExclusionReason(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.2rem', fontSize: '0.8rem', flex: 1 }} />
-                                            <button onClick={() => handleAddExclusion(coord.id)} disabled={!newExclusionStartDate || loading || (newExclusionIsRange && !newExclusionEndDate)} className={styles.primaryBtn} style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>+ Exclusión</button>
-                                          </div>
-                                        </div>
-
-                                      </div>
-                                    </div>
+                                    <PermitCoordinationCard
+                                      key={coord.id}
+                                      coord={coord}
+                                      loading={loading}
+                                      onDeleteCoordination={handleDeleteCoordination}
+                                      onUpdateCoordination={handleUpdateCoordination}
+                                      onCopyCoordination={handleCopyCoordination}
+                                      onDeleteExclusion={handleDeleteExclusion}
+                                      onAddExclusion={handleAddExclusion}
+                                      onOpenAiModal={handleOpenAiModal}
+                                    />
                                   ))}
                                 </div>
                               ) : (
@@ -924,13 +1151,22 @@ export default function CalendarSettingsModal({
 
                               {/* Add Coordination Form */}
                               <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '6px', flexWrap: 'wrap' }}>
-                                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Inicia (opcional):</label>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>ID / Nombre (opcional):</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Ej: NOTAM D5418/26..." 
+                                  value={newPermitCoordName} 
+                                  onChange={e => setNewPermitCoordName(e.target.value)} 
+                                  className={styles.input} 
+                                  style={{ margin: 0, padding: '0.3rem', fontSize: '0.85rem', minWidth: '170px' }} 
+                                />
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.25rem' }}>Inicia (opcional):</label>
                                 <input type="date" value={newPermitStartDate} onChange={e => setNewPermitStartDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.3rem', fontSize: '0.85rem' }} />
-                                <label style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.5rem' }}>Caduca el:</label>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.25rem' }}>Caduca el:</label>
                                 <input type="date" value={newPermitDate} onChange={e => setNewPermitDate(e.target.value)} className={styles.input} style={{ margin: 0, padding: '0.3rem', fontSize: '0.85rem' }} />
-                                <label style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.5rem' }}>Aviso (días):</label>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, marginLeft: '0.25rem' }}>Aviso (días):</label>
                                 <input type="number" value={newPermitWarningDays} onChange={e => setNewPermitWarningDays(Number(e.target.value))} className={styles.input} style={{ margin: 0, width: '60px', padding: '0.3rem', fontSize: '0.85rem' }} />
-                                <button onClick={() => handleAddCoordination(permit.id)} disabled={loading || !newPermitDate} className={styles.primaryBtn} style={{ padding: '0.3rem 0.8rem', fontSize: '0.85rem' }}>+ Coordinación</button>
+                                <button type="button" onClick={() => handleAddCoordination(permit.id)} disabled={loading || !newPermitDate} className={styles.primaryBtn} style={{ padding: '0.3rem 0.8rem', fontSize: '0.85rem' }}>+ Coordinación</button>
                               </div>
                             </div>
 
@@ -1207,8 +1443,8 @@ export default function CalendarSettingsModal({
                       <span>📅</span>
                       <span>
                         <strong>Periodo de coordinación detectado:</strong>{' '}
-                        {aiExtractedCoordination.startDate ? `Del ${aiExtractedCoordination.startDate} al ` : ''}
-                        {aiExtractedCoordination.expirationDate || 'No especificado'}
+                        {aiExtractedCoordination.startDate ? `Del ${formatDateDMY(aiExtractedCoordination.startDate)} al ` : ''}
+                        {formatDateDMY(aiExtractedCoordination.expirationDate) || 'No especificado'}
                       </span>
                     </div>
                   )}
@@ -1238,8 +1474,8 @@ export default function CalendarSettingsModal({
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto' }}>
                     {aiPreviewItems.map((item, idx) => {
-                      const startFmt = item.startDate ? item.startDate.split('-').reverse().join('/') : '';
-                      const endFmt = item.endDate ? item.endDate.split('-').reverse().join('/') : null;
+                      const startFmt = formatDateDMY(item.startDate);
+                      const endFmt = item.endDate ? formatDateDMY(item.endDate) : null;
                       const dateDisplay = endFmt ? `Del ${startFmt} al ${endFmt}` : startFmt;
 
                       let ruleBadge = <span className={styles.badgeDeny}>Prohibido todo el día</span>;

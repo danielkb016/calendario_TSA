@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { formatDateDMY } from '@/lib/dateUtils';
 import styles from './TodayStatusBanner.module.css';
 
 type Flight = {
@@ -51,7 +52,7 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight, showCa
       <div className={`${styles.banner} ${styles.greenBanner}`}>
         {isHistorical && (
           <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-            ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+            ⚠️ Histórico: {formatDateDMY(selectedDate)}
           </div>
         )}
         <div className={styles.icon}>🟢</div>
@@ -69,7 +70,7 @@ export default function TodayStatusBanner({ flights, zones, onEditFlight, showCa
     <div className={`${styles.banner} ${styles.yellowBanner}`}>
       {isHistorical && (
         <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-          ⚠️ Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+          ⚠️ Histórico: {formatDateDMY(selectedDate)}
         </div>
       )}
       <div className={styles.icon}>⚠️</div>

@@ -27,6 +27,7 @@ type PermitExclusion = {
 
 type PermitCoordination = {
   id: number;
+  name?: string | null;
   startDate: Date | string | null;
   expirationDate: Date | string;
   warningDays: number;

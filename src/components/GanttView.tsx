@@ -6,6 +6,7 @@ import { getFlights, deleteFlight, getAllFlights } from '@/app/actions';
 import FlightModal from './FlightModal';
 import FlightTable from './FlightTable';
 import CollisionWarnings from './CollisionWarnings';
+import { formatDateDMY } from '@/lib/dateUtils';
 import styles from './GanttView.module.css';
 
 type Flight = {
@@ -31,6 +32,7 @@ type Calendar = {
     name: string; 
     coordinations?: {
       id: number;
+      name?: string | null;
       startDate: Date | string | null;
       expirationDate: Date | string;
       warningDays?: number;
@@ -187,7 +189,7 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
     .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 
   // Global permit expiration check
-  const expiringPermits: { name: string; expirationDate: Date }[] = [];
+  const expiringPermits: { name: string; coordName?: string | null; expirationDate: Date }[] = [];
   const expiredPermits: { name: string; expirationDate: Date }[] = [];
   const targetDateStr = currentDateIso || new Date().toLocaleDateString('en-CA');
   const targetDate = new Date(targetDateStr);
@@ -205,13 +207,27 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
       if (!activeCoord) {
         expiredPermits.push({ name: permit.name, expirationDate: targetDate }); // Mock Date since no coord
       } else {
-        const expDate = new Date(activeCoord.expirationDate);
-        const daysLeft = Math.ceil((expDate.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
-        const warningDays = activeCoord.warningDays ?? 30;
-        if (daysLeft < 0) {
-          expiredPermits.push({ name: permit.name, expirationDate: expDate });
-        } else if (daysLeft <= warningDays) {
-          expiringPermits.push({ name: permit.name, expirationDate: expDate });
+        // Find latest coordination among all coordinations registered for this permit
+        let latestCoord = activeCoord;
+        let latestExpTime = new Date(activeCoord.expirationDate).getTime();
+        if (permit.coordinations && permit.coordinations.length > 0) {
+          for (const c of permit.coordinations) {
+            const cExp = new Date(c.expirationDate).getTime();
+            if (cExp > latestExpTime) {
+              latestExpTime = cExp;
+              latestCoord = c;
+            }
+          }
+        }
+
+        const latestExpDate = new Date(latestCoord.expirationDate);
+        const startOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+        const startOfLatest = new Date(latestExpDate.getFullYear(), latestExpDate.getMonth(), latestExpDate.getDate());
+        const daysUntilLatestExp = Math.round((startOfLatest.getTime() - startOfTarget.getTime()) / (1000 * 60 * 60 * 24));
+        const warningDays = latestCoord.warningDays ?? 30;
+
+        if (daysUntilLatestExp <= warningDays) {
+          expiringPermits.push({ name: permit.name, coordName: latestCoord.name, expirationDate: latestExpDate });
         }
       }
     });
@@ -226,7 +242,7 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
       )}
       {expiringPermits.length > 0 && (
         <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fbbf24', color: '#b45309', padding: '0.75rem', borderRadius: 'var(--radius)', marginBottom: '1rem', fontWeight: 'bold' }}>
-          ⚠️ Los siguientes permisos caducan pronto: {expiringPermits.map(p => `${p.name} (${p.expirationDate.toLocaleDateString()})`).join(', ')}.
+          ⚠️ Los siguientes permisos caducan pronto: {expiringPermits.map(p => `${p.name}${p.coordName ? ` (${p.coordName})` : ''} (${formatDateDMY(p.expirationDate)})`).join(', ')}.
         </div>
       )}
 
@@ -310,7 +326,10 @@ export default function GanttView({ calendar, operators, isAllMode, currentDateI
                           reasonText = `Prohibido: ${twStr} (${ex.reason || 'Sin motivo'})`;
                         }
                       }
-                      excludedBy.push(`${permit.name}: ${reasonText}`);
+                      const coordLabel = activeCoord.name && activeCoord.name.trim().toLowerCase() !== permit.name.trim().toLowerCase()
+                        ? `${permit.name} (${activeCoord.name})`
+                        : permit.name;
+                      excludedBy.push(`${coordLabel}: ${reasonText}`);
                     }
                   }
                 }

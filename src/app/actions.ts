@@ -135,23 +135,46 @@ export async function deleteGlobalPermit(id: number) {
 
 // -- Permit Coordinations (Level 2) --
 
-export async function addPermitCoordination(globalPermitId: number, startDate: Date | null, expirationDate: Date, warningDays: number = 30) {
+export async function addPermitCoordination(
+  globalPermitId: number, 
+  startDate: Date | null, 
+  expirationDate: Date, 
+  warningDays: number = 30,
+  name?: string | null
+) {
   const coord = await prisma.permitCoordination.create({
     data: {
       globalPermitId,
       startDate,
       expirationDate,
-      warningDays
+      warningDays,
+      name: name?.trim() || null
     }
   });
   revalidatePath('/');
   return coord;
 }
 
-export async function updatePermitCoordination(id: number, startDate: Date | null, expirationDate: Date, warningDays: number = 30) {
+export async function updatePermitCoordination(
+  id: number, 
+  startDate: Date | null, 
+  expirationDate: Date, 
+  warningDays: number = 30,
+  name?: string | null
+) {
+  const data: {
+    startDate: Date | null;
+    expirationDate: Date;
+    warningDays: number;
+    name?: string | null;
+  } = { startDate, expirationDate, warningDays };
+  if (name !== undefined) {
+    data.name = name?.trim() || null;
+  }
+
   const coord = await prisma.permitCoordination.update({
     where: { id },
-    data: { startDate, expirationDate, warningDays }
+    data
   });
   revalidatePath('/');
   return coord;

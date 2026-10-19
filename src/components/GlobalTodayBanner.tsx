@@ -12,6 +12,7 @@ import {
 import OpCoordinationModal from './OpCoordinationModal';
 import CalendarSettingsModal from './CalendarSettingsModal';
 import styles from './TodayStatusBanner.module.css';
+import { formatDateDMY } from '../lib/dateUtils';
 
 function WeatherBadge({ lat, lng, lastRefreshed }: { lat: number, lng: number, lastRefreshed?: Date }) {
   const [weather, setWeather] = useState<{windSpeed: number, temp: number, code: number, rainProb: number} | null>(null);
@@ -155,6 +156,7 @@ type PermitExclusion = {
 
 type PermitCoordination = {
   id: number;
+  name?: string | null;
   startDate: Date | string | null;
   expirationDate: Date | string;
   warningDays?: number;
@@ -334,7 +336,7 @@ export default function GlobalTodayBanner({
 
         {isHistorical && (
           <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, border: '1px solid rgba(239, 68, 68, 0.3)', backdropFilter: 'blur(4px)' }}>
-            ⚠️ Visualizando Histórico: {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+            ⚠️ Visualizando Histórico: {formatDateDMY(selectedDate)}
           </div>
         )}
       </div>
@@ -525,11 +527,26 @@ export default function GlobalTodayBanner({
                             color = '#ef4444';
                             bgColor = 'rgba(239, 68, 68, 0.1)';
                             subText = statusText;
-                          } else {
-                            const expDate = new Date(activeCoord.expirationDate);
-                            const daysLeft = Math.ceil((expDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24));
-                            const warningDays = activeCoord.warningDays ?? 30;
-                            subText = expDate.toLocaleDateString();
+                            // Find the latest coordination (furthest expiration date) registered for this permit
+                            let latestCoord = activeCoord;
+                            let latestExpTime = new Date(activeCoord.expirationDate).getTime();
+                            if (permit.coordinations && permit.coordinations.length > 0) {
+                              for (const c of permit.coordinations) {
+                                const cExp = new Date(c.expirationDate).getTime();
+                                if (cExp > latestExpTime) {
+                                  latestExpTime = cExp;
+                                  latestCoord = c;
+                                }
+                              }
+                            }
+
+                            const latestExpDate = new Date(latestCoord.expirationDate);
+                            const startOfSelected = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+                            const startOfLatestExp = new Date(latestExpDate.getFullYear(), latestExpDate.getMonth(), latestExpDate.getDate());
+                            const daysUntilLatestExp = Math.round((startOfLatestExp.getTime() - startOfSelected.getTime()) / (1000 * 60 * 60 * 24));
+                            const latestWarningDays = latestCoord.warningDays ?? 30;
+
+                            subText = formatDateDMY(activeCoord.expirationDate);
 
                             if (activeCoord.exclusions) {
                               for (const ex of activeCoord.exclusions) {
@@ -607,11 +624,9 @@ export default function GlobalTodayBanner({
                               bgColor = 'rgba(249, 115, 22, 0.1)';
                               isBlinking = true;
                               subText = statusText;
-                            } else if (daysLeft < 0) {
-                              color = '#f87171'; // Caducado
-                              subText = 'Caducado';
-                            } else if (daysLeft <= warningDays) {
+                            } else if (daysUntilLatestExp <= latestWarningDays) {
                               color = '#facc15'; // Aviso de renovación
+                              subText = formatDateDMY(latestExpDate);
                             }
                           }
 
@@ -634,12 +649,21 @@ export default function GlobalTodayBanner({
                                   100% { background-color: rgba(249, 115, 22, 0.1); border-color: #f97316; }
                                 }
                               `}</style>
-                              <span suppressHydrationWarning style={{ color: (isExcluded || isPartiallyExcluded) ? color : undefined, fontWeight: (isExcluded || isPartiallyExcluded) ? 'bold' : 'normal' }}>
-                                {permit.name} {(isExcluded || isPartiallyExcluded) && <span suppressHydrationWarning style={{fontSize: '0.7rem', color, marginLeft: '0.2rem'}}>⚠️</span>}
-                              </span>
-                              <span suppressHydrationWarning style={{ color, fontWeight: (isExcluded || isPartiallyExcluded) ? 'bold' : 'normal', fontSize: (isExcluded || isPartiallyExcluded) ? '0.75rem' : undefined }}>
-                                {subText}
-                              </span>
+                              {(() => {
+                                const coordNameSuffix = activeCoord?.name && activeCoord.name.trim().toLowerCase() !== permit.name.trim().toLowerCase()
+                                  ? ` (${activeCoord.name})`
+                                  : '';
+                                return (
+                                  <>
+                                    <span suppressHydrationWarning style={{ color: (isExcluded || isPartiallyExcluded) ? color : undefined, fontWeight: (isExcluded || isPartiallyExcluded) ? 'bold' : 'normal' }}>
+                                      {permit.name}{coordNameSuffix} {(isExcluded || isPartiallyExcluded) && <span suppressHydrationWarning style={{fontSize: '0.7rem', color, marginLeft: '0.2rem'}}>⚠️</span>}
+                                    </span>
+                                    <span suppressHydrationWarning style={{ color, fontWeight: (isExcluded || isPartiallyExcluded) ? 'bold' : 'normal', fontSize: (isExcluded || isPartiallyExcluded) ? '0.75rem' : undefined }}>
+                                      {subText}
+                                    </span>
+                                  </>
+                                );
+                              })()}
                             </div>
                           );
                         })}
