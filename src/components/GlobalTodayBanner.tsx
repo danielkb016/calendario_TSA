@@ -527,6 +527,7 @@ export default function GlobalTodayBanner({
                             color = '#ef4444';
                             bgColor = 'rgba(239, 68, 68, 0.1)';
                             subText = statusText;
+                          } else {
                             // Find the latest coordination (furthest expiration date) registered for this permit
                             let latestCoord = activeCoord;
                             let latestExpTime = new Date(activeCoord.expirationDate).getTime();
